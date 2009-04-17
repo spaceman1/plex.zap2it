@@ -35,6 +35,8 @@ def CreateDict():
 
 def UpdateCache():
   # Get TV Page
+  if Dict.Get('postalCode') == '' or Dict.Get('provider') == '':
+    return
   now = datetime.datetime.now()
   nextTime = [now.hour, 0]
   if now.minute < 30:
@@ -125,6 +127,8 @@ def TVMenu(sender):
     timeZone = time.timezone
 
   (hour, minute) = sender.itemTitle.split(':')
+  menuTime = int(minute) * 60 + int(hour) * 3600
+  Log(str(menuTime //1800))
 
   for td in GetXML(url, True).xpath('//td[starts-with(@class,"zc-pg")]'):
     try: showName = td.xpath('child::a')[0].text.encode('ascii','ignore')
@@ -133,11 +137,9 @@ def TVMenu(sender):
     except: description = ''
     
     startTime = int(re.search(r'(?:([^,]+),)*', td.get('onclick')).group(1)) // 1000
-    startTime = (startTime % 86400) - timeZone
+    startTime = ((startTime % 86400) - timeZone) % 86400
     
-    menuTime = int(minute) * 60 + int(hour) * 3600
-    
-    if showName != '' and description != '' and startTime // 1800 == menuTime // 1800:  
+    if (showName != '' or description != '') and startTime // 1800 == menuTime // 1800:  
       duration = int(re.search(r'(\d+)', td.get('style')).group(0)) * 15 # seconds
       
       channel = td.xpath('parent::*')[0].xpath('child::td[@class="zc-st"]')[0]
@@ -157,7 +159,7 @@ def TVMenu(sender):
       timeString = str(startTime // 3600) + ":" + str(startTime % 3600 // 60).zfill(2) + ' - ' + str(endTime // 3600) + ":" + str(endTime % 3600 // 60).zfill(2)
       
       dir.Append(Function(DirectoryItem(noMenu, title=showName, subtitle=channelNum + ' ' + channelName + ' ' + timeString, summary=description)))
-  #    Log('name: ' + showName + ' description: ' + description + ' start: ' + str(startTime) + ' duration: ' + str(duration)) 
+      #Log('name: ' + showName + ' description: ' + description + ' start: ' + str(startTime)) 
 
   return dir
   
