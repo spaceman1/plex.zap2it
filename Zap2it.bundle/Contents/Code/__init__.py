@@ -61,10 +61,10 @@ def MainMenu():
     nextTime[1] = 0
   else:
     nextTime[1] = 30  
-  
-  for k in range(6):
-    dir.Append(Function(DirectoryItem(TVMenu, title=str(nextTime[0]) + ':' + str(nextTime[1]).zfill(2) )))
-    nextTime = inc30(nextTime[0], nextTime[1])
+  if Dict.Get('postalCode') != '' and Dict.Get('provider') != '':
+    for k in range(6):
+      dir.Append(Function(DirectoryItem(TVMenu, title=str(nextTime[0]) + ':' + str(nextTime[1]).zfill(2) )))
+      nextTime = inc30(nextTime[0], nextTime[1])
   
   dir.Append(Function(DirectoryItem(settingsMenu, title=L('Settings'))))
   return dir
