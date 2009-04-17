@@ -3,7 +3,7 @@ from PMS.Objects import *
 from PMS.Shortcuts import *
 
 
-import re, string, datetime, time
+import re, string, datetime, time, calendar
 
 PLUGIN_PREFIX = "/video/zap2it"
 PROVIDER_INDEX = "http://tvlistings.zap2it.com/tvlistings/ZCGrid.do?aid=zap2it&isDescriptionOn=true"
@@ -30,64 +30,89 @@ def CreateDict():
   Dict.Set('channels', list())
   Dict.Set('postalCode', '')
   Dict.Set('provider', '')
-
+  Dict.Set('timeFormat', '24')
+  
 ####################################################################################################
 
 def UpdateCache():
   # Get TV Page
-  if Dict.Get('postalCode') == '' or Dict.Get('provider') == '':
+  if Dict.Get('postalCode') == '' or Dict.Get('provider') == '' or Dict.Get('timeFormat') == '':
     return
-  now = datetime.datetime.now()
-  nextTime = [now.hour, 0]
-  if now.minute < 30:
-    nextTime[1] = 0
-  else:
-    nextTime[1] = 30
+  now = getCurrentTimeSlot()
   sender = ItemInfoRecord()
-  sender.itemTitle = str(nextTime[0]) + ':' + str(nextTime[1])
+  sender.itemTitle = timeToDisplay(now)
   TVMenu(sender=sender)
 
 ####################################################################################################
 
 # TODO: Allow access to later times &fromTimeInMillis=
 # TODO: Decrease number of cached pages to 1 per 3 hours
-# TODO: Option for 12-hour time format
 
 def MainMenu():
   dir = MediaContainer()
-  now = datetime.datetime.now()
-  nextTime = [now.hour, 0]
-  if now.minute < 30:
-    nextTime[1] = 0
-  else:
-    nextTime[1] = 30  
-  if Dict.Get('postalCode') != '' and Dict.Get('provider') != '':
+  
+  if Dict.Get('postalCode') != '' and Dict.Get('provider') != '' and Dict.Get('timeFormat') != '':
+    nextTime = getCurrentTimeSlot()
+  
     for k in range(6):
-      dir.Append(Function(DirectoryItem(TVMenu, title=str(nextTime[0]) + ':' + str(nextTime[1]).zfill(2) )))
-      nextTime = inc30(nextTime[0], nextTime[1])
+      dir.Append(Function(DirectoryItem(TVMenu, title=timeToDisplay(nextTime))))
+      nextTime = nextTime + 1800
   
   dir.Append(Function(DirectoryItem(settingsMenu, title=L('Settings'))))
   return dir
 
+####################################################################################################
 
-def inc30(hour, minute):
-  if minute == 0:
-    minute = 30
+def timeToSeconds(t):
+  (time, meridian) = t.split(' ')
+  (hour,minute) = time.split(':')
+  if meridian == 'PM':
+    timeSeconds = 43200
+    if hour == 12: hour = 0
   else:
-    hour = hour + 1
-    minute = 0
-    if hour > 23: hour = hour - 24
+    timeSeconds = 0
     
-  return (hour, minute)
+  timeSeconds = timeSeconds + int(minute) * 60 + int(hour) * 3600
+  return timeSeconds
   
   
+def timeToDisplay(t):
+  hour = (t // 3600) % 24
+  minute = (t % 3600) // 60
+  #Log(str(hour) + ':' + str(minute))
+  if Dict.Get('timeFormat') == '12':
+    if hour >= 12:
+      meridian = 'PM'
+    else:
+      meridian = 'AM'
+    if hour > 12:
+      hour = hour - 12
+    if hour == 0:
+      hour = 12
+    
+  else:
+    meridian = ''
+    
+  return str(hour) + ':' + str(minute).zfill(2) + ' ' + meridian
+
+def getCurrentTimeSlot():
+  if time.daylight != 0:
+    timeZone = time.altzone 
+  else:
+    timeZone = time.timezone
+  now = ((calendar.timegm(time.gmtime()) % 86400) - timeZone) % 86400
+  now = now - (now % 1800)
+  return now
+
+####################################################################################################
+
 def settingsMenu(sender):
   dir = MediaContainer()
   dir.title2 = L('Settings')
   dir.Append(Function(SearchDirectoryItem(setPostalCode, title='ZIP or Postal Code', prompt='Enter your ZIP or Postal Code')))
   if Dict.Get('postalCode') != '':
     dir.Append(Function(PopupDirectoryItem(providerMenu, title='Provider')))
-  
+  dir.Append(Function(PopupDirectoryItem(timeFormatMenu, title='Time Format')))
   return dir
   
 def setPostalCode(sender, query):
@@ -110,26 +135,30 @@ def setProvider(sender):
   Dict.Set('provider', re.search(r'lineupId=(.*)', setProviderURL).group(1))
 
 
+def timeFormatMenu(sender):
+  dir = MediaContainer()
+  dir.Append(Function(DirectoryItem(setTimeFormat, title='12 hour')))
+  dir.Append(Function(DirectoryItem(setTimeFormat, title='24 hour')))
+  return dir
+  
+def setTimeFormat(sender):
+  timeFormat = re.match(r'(\d\d).*', sender.itemTitle).group(1)
+  Dict.Set('timeFormat', timeFormat)
+
 def TVMenu(sender):
   dir = MediaContainer()
   dir.title2 = sender.itemTitle
   dir.viewGroup = "Details"
   
-  url = PROVIDER_INDEX 
-  postalCode = Dict.Get('postalCode')
-  if postalCode != '': url = url + '&zipcode=' + postalCode
-
-  provider = Dict.Get('provider')
-  if provider != '': url = url + '&lineupId=' + provider
+  url = PROVIDER_INDEX + '&zipcode=' + Dict.Get('postalCode') + '&lineupId=' + Dict.Get('provider')
 
   if time.daylight != 0:
     timeZone = time.altzone 
   else:
     timeZone = time.timezone
 
-  (hour, minute) = sender.itemTitle.split(':')
-  menuTime = int(minute) * 60 + int(hour) * 3600
-  Log(str(menuTime //1800))
+  menuTime = timeToSeconds(sender.itemTitle)
+  Log(str(menuTime))
 
   for td in GetXML(url, True).xpath('//td[starts-with(@class,"zc-pg")]'):
     try: showName = td.xpath('child::a')[0].text.encode('ascii','ignore')
@@ -157,13 +186,12 @@ def TVMenu(sender):
       except: pass
       
       endTime = (startTime + duration) % 86400
-      timeString = str(startTime // 3600) + ":" + str(startTime % 3600 // 60).zfill(2) + ' - ' + str(endTime // 3600) + ":" + str(endTime % 3600 // 60).zfill(2)
+      timeString = timeToDisplay(startTime) + ' - ' + timeToDisplay(endTime)
       
       dir.Append(Function(DirectoryItem(noMenu, title=showName, subtitle=channelNum + ' ' + channelName + ' ' + timeString, summary=description)))
       #Log('name: ' + showName + ' description: ' + description + ' start: ' + str(startTime)) 
 
   return dir
-  
   
 def noMenu(sender):
   pass
