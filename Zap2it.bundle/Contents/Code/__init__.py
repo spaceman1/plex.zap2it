@@ -76,6 +76,7 @@ def inc30(hour, minute):
   else:
     hour = hour + 1
     minute = 0
+    if hour > 23: hour = hour - 24
     
   return (hour, minute)
   
