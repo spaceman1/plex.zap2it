@@ -61,11 +61,12 @@ def MainMenu():
   
   if Dict.Get('postalCode') != '' and Dict.Get('provider') != '' and Dict.Get('timeFormat') != '':
     nextTime = getCurrentTimeSlot()
-  
+    Plugin.AddPathRequestHandler(PLUGIN_PREFIX, TVMenu, "", "", "")
+    
     for k in range(6):
-      dir.Append(Function(DirectoryItem(TVMenu, title=timeToDisplay(nextTime))))
+      dir.Append(DirectoryItem(nextTime, timeToDisplay(nextTime), '',''))
       nextTime = nextTime + 1800
-  
+        
   dir.Append(Function(DirectoryItem(settingsMenu, title=L('Settings'))))
   return dir
 
@@ -219,12 +220,12 @@ def grabListings(t, shows):
 
 ####################################################################################################
 
-def TVMenu(sender):
+def TVMenu(pathNouns, path):
   dir = MediaContainer()
-  dir.title2 = sender.itemTitle
   dir.viewGroup = 'Details'
+  menuTime = int(pathNouns[0])
+  dir.title2 = timeToDisplay(menuTime)
   
-  menuTime = timeToSeconds(sender.itemTitle)
   Log(menuTime)
   listings = Dict.Get('shows')
   if not menuTime in listings:
