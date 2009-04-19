@@ -10,7 +10,6 @@ DAY_PREFIX = PLUGIN_PREFIX + '/day'
 PROVIDER_INDEX = 'http://tvlistings.zap2it.com/tvlistings/ZCGrid.do?aid=zap2it&isDescriptionOn=true'
 DAY = 86400
 CACHE_TIME = DAY
-EPOCH_DAY = 719162
 
 ####################################################################################################
 
@@ -68,7 +67,6 @@ def UpdateCache():
 
 ####################################################################################################
 
-# TODO: Ability to show/hide channels
 # TODO: Add day to non-today menus
 # TODO: Add Search
 
