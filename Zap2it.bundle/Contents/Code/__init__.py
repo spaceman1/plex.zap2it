@@ -132,6 +132,7 @@ def settingsMenu(sender):
   dir.Append(Function(PopupDirectoryItem(timeFormatMenu, title='Time Format')))
   dir.Append(Function(PopupDirectoryItem(inProgressMenu, title='Shows in progress')))
   dir.Append(Function(DirectoryItem(hideChannelsMenu, title='Hide Channels')))
+  dir.Append(Function(DirectoryItem(showChannelsMenu, title='Show Channels')))
   return dir
 
 ####################################################################################################
@@ -200,6 +201,25 @@ def hideChannel(sender):
   (num, name) = sender.itemTitle.split(' ')
   channels = Dict.Get('channels')
   channels[int(num)]['enabled'] = False
+  return
+
+####################################################################################################
+
+def showChannelsMenu(sender):
+  dir = MediaContainer()
+  dir.title2 = 'Show Channels'
+  channels = Dict.Get('channels')
+  channelList = channels.keys()
+  channelList.sort()
+  for channel in channelList:
+    if not channels[channel]['enabled']:
+      dir.Append(Function(DirectoryItem(showChannel, title=str(channel) + ' ' + channels[channel]['name'])))
+  return dir
+  
+def showChannel(sender):
+  (num, name) = sender.itemTitle.split(' ')
+  channels = Dict.Get('channels')
+  channels[int(num)]['enabled'] = True
   return
   
 ####################################################################################################
