@@ -142,7 +142,8 @@ def settingsMenu(sender):
 def setPostalCode(sender, query):
   query = string.join(query.split(' '),'') # No spaces please
   Dict.Set('postalCode', query)
-
+  return
+  
 ####################################################################################################
 
 def providerMenu(sender):
@@ -159,6 +160,8 @@ def setProvider(sender):
 
   setProviderURL = XML.ElementFromString(HTTP.Request(url=url, cacheTime=CACHE_TIME), True).xpath('//a[text() = "' + sender.itemTitle + '"]')[0].get('href')
   Dict.Set('provider', re.search(r'lineupId=(.*)', setProviderURL).group(1))
+  UpdateCache()
+  return
 
 ####################################################################################################
 
@@ -171,7 +174,8 @@ def timeFormatMenu(sender):
 def setTimeFormat(sender):
   timeFormat = re.match(r'(\d\d).*', sender.itemTitle).group(1)
   Dict.Set('timeFormat', timeFormat)
-
+  return
+  
 ####################################################################################################
 
 def inProgressMenu(sender):
@@ -185,6 +189,7 @@ def setInProgress(sender):
     Dict.Set('inProgress', True)
   else:
     Dict.Set('inProgress', False)
+  return
   
 ####################################################################################################
 
