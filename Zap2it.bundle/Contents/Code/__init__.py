@@ -128,11 +128,13 @@ def settingsMenu(sender):
   dir.Append(Function(SearchDirectoryItem(setPostalCode, title='ZIP or Postal Code', prompt='Enter your ZIP or Postal Code')))
   if Dict.Get('postalCode') != '':
     dir.Append(Function(PopupDirectoryItem(providerMenu, title='Provider')))
-    
-  dir.Append(Function(PopupDirectoryItem(timeFormatMenu, title='Time Format')))
-  dir.Append(Function(PopupDirectoryItem(inProgressMenu, title='Shows in progress')))
-  dir.Append(Function(DirectoryItem(hideChannelsMenu, title='Hide Channels')))
-  dir.Append(Function(DirectoryItem(showChannelsMenu, title='Show Channels')))
+  if Dict.Get('provider') != '':  
+    dir.Append(Function(PopupDirectoryItem(timeFormatMenu, title='Time Format')))
+    dir.Append(Function(PopupDirectoryItem(inProgressMenu, title='Shows in progress')))
+    if len(hideChannelsMenu(0)) != 0:
+      dir.Append(Function(DirectoryItem(hideChannelsMenu, title='Hide Channels')))
+    if len(showChannelsMenu(0)) != 0:
+      dir.Append(Function(DirectoryItem(showChannelsMenu, title='Show Channels')))
   return dir
 
 ####################################################################################################
