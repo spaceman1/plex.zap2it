@@ -5,23 +5,22 @@ from PMS.Shortcuts import *
 
 import re, string, datetime, time, calendar
 
-PLUGIN_PREFIX = "/video/zap2it"
-PROVIDER_INDEX = "http://tvlistings.zap2it.com/tvlistings/ZCGrid.do?aid=zap2it&isDescriptionOn=true"
+PLUGIN_PREFIX = '/video/zap2it'
+PROVIDER_INDEX = 'http://tvlistings.zap2it.com/tvlistings/ZCGrid.do?aid=zap2it&isDescriptionOn=true'
 DAY = 86400
 CACHE_TIME = DAY
 EPOCH_DAY = 719162
 ####################################################################################################
 
 def Start():
-  Plugin.AddPrefixHandler(PLUGIN_PREFIX, MainMenu, L("Zap2it"))
+  Plugin.AddPrefixHandler(PLUGIN_PREFIX, MainMenu, L('Zap2it'))
   
-  Plugin.AddViewGroup("Details", viewMode="InfoList", mediaType="items")
-  Plugin.AddViewGroup("PlainList", viewMode="List", mediaType="items")
-  Plugin.AddViewGroup("EpisodeList", viewMode="Episodes", mediaType="items")
+  Plugin.AddViewGroup('Details', viewMode='InfoList', mediaType='items')
+  Plugin.AddViewGroup('EpisodeList', viewMode='Episodes', mediaType='items')
   
-  MediaContainer.title1 = L("Zap2it")
-  MediaContainer.viewGroup = "EpisodeList"
-  MediaContainer.art = R("art-default.jpg")
+  MediaContainer.title1 = L('Zap2it')
+  MediaContainer.viewGroup = 'EpisodeList'
+  MediaContainer.art = R('art-default.jpg')
   
   HTTP.SetCacheTime(CACHE_TIME)
   
@@ -182,7 +181,6 @@ def setInProgress(sender):
   else:
     Dict.Set('inProgress', False)
   
-
 ####################################################################################################
 
 def grabListings(t, shows):
@@ -220,10 +218,11 @@ def grabListings(t, shows):
         shows[slot].append(dict(title=showName, channel=channelNum + ' ' + channelName, start=startTime, end=endTime, summary=description, inProgress=True))
 
 ####################################################################################################
+
 def TVMenu(sender):
   dir = MediaContainer()
   dir.title2 = sender.itemTitle
-  dir.viewGroup = "Details"
+  dir.viewGroup = 'Details'
   
   menuTime = timeToSeconds(sender.itemTitle)
   Log(menuTime)
@@ -246,8 +245,8 @@ def noMenu(sender):
   pass
 
 ####################################################################################################
+
 def GetXML(theUrl, use_html_parser=False):
   return XML.ElementFromString(HTTP.Request(url=theUrl, cacheTime=CACHE_TIME), use_html_parser)
-
 
 ####################################################################################################
