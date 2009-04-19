@@ -6,6 +6,7 @@ from PMS.Shortcuts import *
 import re, string, datetime, time, calendar
 
 PLUGIN_PREFIX = '/video/zap2it'
+DAY_PREFIX = PLUGIN_PREFIX + '/day'
 PROVIDER_INDEX = 'http://tvlistings.zap2it.com/tvlistings/ZCGrid.do?aid=zap2it&isDescriptionOn=true'
 DAY = 86400
 CACHE_TIME = DAY
@@ -63,10 +64,11 @@ def MainMenu():
     nextTime = getCurrentTimeSlot()
     Plugin.AddPathRequestHandler(PLUGIN_PREFIX, TVMenu, '', '', '')
     
-    for k in range(6):
+    for k in range(24):
       dir.Append(DirectoryItem(nextTime, timeToDisplay(nextTime), '',''))
       nextTime = nextTime + 1800
-        
+    dir.Append(Function(DirectoryItem(daysMenu, title=L('Another day'))))
+    
   dir.Append(Function(DirectoryItem(settingsMenu, title=L('Settings'))))
   return dir
 
@@ -223,6 +225,41 @@ def TVMenu(pathNouns, path):
 
   return dir
   
+####################################################################################################
+
+def daysMenu(sender):
+  dir = MediaContainer()
+  dir.title2 = 'Days'
+  Plugin.AddPathRequestHandler(DAY_PREFIX, dayMenu, '', '', '')
+
+  (year, month, day) = datetime.datetime.today().timetuple()[0:3]
+  dayOfWeek = calendar.weekday(year, month, day)
+  
+  midnight = datetime.datetime.fromordinal(datetime.datetime.now().toordinal())
+  midnight = calendar.timegm(midnight.timetuple())
+  if time.daylight != 0:
+    midnight = midnight + time.altzone 
+  else:
+    midnight = midnight + time.timezone
+
+
+  for dayCount in range(7):
+    dir.Append(DirectoryItem(DAY_PREFIX + '/' + str(midnight), title=calendar.day_name[dayOfWeek]))
+    dayOfWeek = (dayOfWeek + 1) % 7
+    midnight = midnight + DAY
+
+  return dir
+
+def dayMenu(pathNouns, path):
+  Log('daymenu called')
+  dir = MediaContainer()  
+  Plugin.AddPathRequestHandler(PLUGIN_PREFIX, TVMenu, '', '', '')
+    
+  nextTime = int(pathNouns[0])
+  for k in range(48):
+    dir.Append(DirectoryItem(PLUGIN_PREFIX + '/' + str(nextTime), timeToDisplay(nextTime), '',''))
+    nextTime = nextTime + 1800
+  return dir
 ####################################################################################################
 
 def noMenu(sender):
