@@ -255,10 +255,10 @@ def grabListings(t, shows):
       endSlot = endTime - (endTime % 1800)
       
       if not startSlot in shows: shows[startSlot] = list()
-      shows[startSlot].append(dict(title=showName, channel=channelNum + ' ' + channelName, start=startTime, end=endTime, summary=description, inProgress=False))
+      shows[startSlot].append(dict(title=showName, channelNum=channelNum, channelName=channelName, start=startTime, end=endTime, summary=description, inProgress=False))
       for slot in range(startSlot, endSlot, 1800):
         if not slot in shows: shows[slot] = list()
-        shows[slot].append(dict(title=showName, channel=channelNum + ' ' + channelName, start=startTime, end=endTime, summary=description, inProgress=True))
+        shows[slot].append(dict(title=showName, channelNum=channelNum, channelName=channelName, start=startTime, end=endTime, summary=description, inProgress=True))
 
 ####################################################################################################
 
@@ -275,10 +275,11 @@ def TVMenu(pathNouns, path):
   listings = listings[menuTime]
   
   displayInProgress = Dict.Get('inProgress')
+  channels = Dict.Get('channels')
   for listing in listings:
     timeString = timeToDisplay(listing['start']) + ' - ' + timeToDisplay(listing['end'])
-    if displayInProgress or not listing['inProgress']:
-      dir.Append(Function(DirectoryItem(noMenu, title=listing['title'], subtitle=listing['channel'] + ' ' + timeString, summary=listing['summary'])))
+    if (displayInProgress or not listing['inProgress']) and channels[int(listing['channelNum'])]['enabled']:
+      dir.Append(Function(DirectoryItem(noMenu, title=listing['title'], subtitle=listing['channelNum'] + ' ' + listing['channelName'] + ' ' + timeString, summary=listing['summary'])))
 
   return dir
   
