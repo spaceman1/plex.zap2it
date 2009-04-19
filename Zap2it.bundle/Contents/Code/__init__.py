@@ -10,6 +10,7 @@ PROVIDER_INDEX = 'http://tvlistings.zap2it.com/tvlistings/ZCGrid.do?aid=zap2it&i
 DAY = 86400
 CACHE_TIME = DAY
 EPOCH_DAY = 719162
+
 ####################################################################################################
 
 def Start():
@@ -52,7 +53,6 @@ def UpdateCache():
 
 ####################################################################################################
 
-# TODO: Fix 12hour time (12:30AM vs 12:30PM) in subtitle
 # TODO: Ability to show/hide channels
 # TODO: Add day to non-today menus
 
@@ -61,7 +61,7 @@ def MainMenu():
   
   if Dict.Get('postalCode') != '' and Dict.Get('provider') != '' and Dict.Get('timeFormat') != '':
     nextTime = getCurrentTimeSlot()
-    Plugin.AddPathRequestHandler(PLUGIN_PREFIX, TVMenu, "", "", "")
+    Plugin.AddPathRequestHandler(PLUGIN_PREFIX, TVMenu, '', '', '')
     
     for k in range(6):
       dir.Append(DirectoryItem(nextTime, timeToDisplay(nextTime), '',''))
@@ -70,30 +70,7 @@ def MainMenu():
   dir.Append(Function(DirectoryItem(settingsMenu, title=L('Settings'))))
   return dir
 
-####################################################################################################
-
-def timeToSeconds(t):
-  (timeOfDay, meridian) = t.split(' ')
-  (hour, minute) = timeOfDay.split(':')
-  if meridian == 'PM':
-    timeSeconds = 43200
-    if hour == 12: hour = 0
-  else:
-    timeSeconds = 0
-  
-  if time.daylight != 0:
-    timeSeconds = timeSeconds + time.altzone 
-  else:
-    timeSeconds = timeSeconds + time.timezone  
-  
-  timeSeconds = timeSeconds + int(minute) * 60 + int(hour) * 3600
-  
-  timeSeconds = timeSeconds + (datetime.date.toordinal(datetime.datetime.today()) - EPOCH_DAY) * DAY
-
-
-  #timeSeconds = timeSeconds % DAY # Adjust to time since midnight local time
-  return timeSeconds
-  
+####################################################################################################  
   
 def timeToDisplay(t):
   # Adjust to local time
@@ -138,10 +115,14 @@ def settingsMenu(sender):
   dir.Append(Function(PopupDirectoryItem(timeFormatMenu, title='Time Format')))
   dir.Append(Function(PopupDirectoryItem(inProgressMenu, title='Shows in progress')))
   return dir
+
+####################################################################################################
   
 def setPostalCode(sender, query):
   query = string.join(query.split(' '),'') # No spaces please
   Dict.Set('postalCode', query)
+
+####################################################################################################
 
 def providerMenu(sender):
   dir = MediaContainer()
@@ -158,6 +139,7 @@ def setProvider(sender):
   setProviderURL = XML.ElementFromString(HTTP.Request(url=url, cacheTime=CACHE_TIME), True).xpath('//a[text() = "' + sender.itemTitle + '"]')[0].get('href')
   Dict.Set('provider', re.search(r'lineupId=(.*)', setProviderURL).group(1))
 
+####################################################################################################
 
 def timeFormatMenu(sender):
   dir = MediaContainer()
@@ -169,6 +151,7 @@ def setTimeFormat(sender):
   timeFormat = re.match(r'(\d\d).*', sender.itemTitle).group(1)
   Dict.Set('timeFormat', timeFormat)
 
+####################################################################################################
 
 def inProgressMenu(sender):
   dir = MediaContainer()
