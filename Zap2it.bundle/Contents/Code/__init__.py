@@ -29,7 +29,7 @@ def Start():
 ####################################################################################################
 
 def CreateDict():
-  Dict.Set('channels', list())
+  Dict.Set('channels', dict())
   Dict.Set('postalCode', '')
   Dict.Set('provider', '')
   Dict.Set('timeFormat', '24')
@@ -52,10 +52,25 @@ def UpdateCache():
   for slot in range(now, now + DAY, 3 * 3600):
     grabListings(slot, shows)
 
+  channels = Dict.Get('channels')
+  if type(channels) != type(dict):
+    channels = dict()
+
+  url = PROVIDER_INDEX + '&zipcode=' + Dict.Get('postalCode') + '&lineupId=' + Dict.Get('provider')
+  for td in GetXML(url, True).xpath('//td[starts-with(@class,"zc-st")]'):
+    channelNum = int(td.xpath('descendant::span[@class="zc-st-n"]')[0].text)
+    channelName = td.xpath('descendant::span[@class="zc-st-c"]')[0].text
+    if not channelNum in channels:
+      channels[channelNum] = dict(name=channelName, enabled=True)
+      
+  Dict.Set('channels', channels)
+      
+
 ####################################################################################################
 
 # TODO: Ability to show/hide channels
 # TODO: Add day to non-today menus
+# TODO: Add Search
 
 def MainMenu():
   dir = MediaContainer()
@@ -116,6 +131,7 @@ def settingsMenu(sender):
     
   dir.Append(Function(PopupDirectoryItem(timeFormatMenu, title='Time Format')))
   dir.Append(Function(PopupDirectoryItem(inProgressMenu, title='Shows in progress')))
+  dir.Append(Function(DirectoryItem(hideChannelsMenu, title='Hide Channels')))
   return dir
 
 ####################################################################################################
@@ -166,6 +182,25 @@ def setInProgress(sender):
     Dict.Set('inProgress', True)
   else:
     Dict.Set('inProgress', False)
+  
+####################################################################################################
+
+def hideChannelsMenu(sender):
+  dir = MediaContainer()
+  dir.title2 = 'Hide Channels'
+  channels = Dict.Get('channels')
+  channelList = channels.keys()
+  channelList.sort()
+  for channel in channelList:
+    if channels[channel]['enabled']:
+      dir.Append(Function(DirectoryItem(hideChannel, title=str(channel) + ' ' + channels[channel]['name'])))
+  return dir
+  
+def hideChannel(sender):
+  (num, name) = sender.itemTitle.split(' ')
+  channels = Dict.Get('channels')
+  channels[int(num)]['enabled'] = False
+  return
   
 ####################################################################################################
 
