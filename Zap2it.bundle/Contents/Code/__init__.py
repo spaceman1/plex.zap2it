@@ -191,6 +191,7 @@ def movieMenu(pathNoun):
 def settingsMenu(sender):
   dir = MediaContainer()
   dir.title2 = L('Settings')
+  dir.nocache = 1
   dir.Append(Function(SearchDirectoryItem(setPostalCode, title='ZIP or Postal Code', prompt='Enter your ZIP or Postal Code')))
   if Dict.Get('postalCode') != '':
     dir.Append(Function(PopupDirectoryItem(providerMenu, title='Provider')))
@@ -202,7 +203,10 @@ def settingsMenu(sender):
     if len(showChannelsMenu(0)) != 0:
       dir.Append(Function(DirectoryItem(showChannelsMenu, title='Show Channels')))
     dir.Append(Function(DirectoryItem(AddFavouritesMenu, title='Add Favourites')))
-    if len(Dict.Get('favourites')) != 0:
+    
+    favourites = Dict.Get('favourites')
+    if favourites == None: Dict.Set('favourites', list())
+    if len(favourites) != 0:
       dir.Append(Function(DirectoryItem(RemoveFavouritesMenu, title='Remove Favourites')))
   return dir
 
@@ -265,6 +269,7 @@ def setInProgress(sender):
 def hideChannelsMenu(sender):
   dir = MediaContainer()
   dir.title2 = 'Hide Channels'
+  dir.nocache = 1
   channels = Dict.Get('channels')
   channelList = channels.keys()
   channelList.sort()
@@ -277,6 +282,7 @@ def hideChannel(sender):
   (num, name) = sender.itemTitle.split(' ')
   channels = Dict.Get('channels')
   channels[int(num)]['enabled'] = False
+  Dict.Set('channels', channels)
   return
 
 ####################################################################################################
@@ -284,6 +290,7 @@ def hideChannel(sender):
 def showChannelsMenu(sender):
   dir = MediaContainer()
   dir.title2 = 'Show Channels'
+  dir.nocache = 1
   channels = Dict.Get('channels')
   channelList = channels.keys()
   channelList.sort()
@@ -296,6 +303,7 @@ def showChannel(sender):
   (num, name) = sender.itemTitle.split(' ')
   channels = Dict.Get('channels')
   channels[int(num)]['enabled'] = True
+  Dict.Set('channels', channels)
   return
 
 ####################################################################################################
@@ -303,6 +311,7 @@ def showChannel(sender):
 def AddFavouritesMenu(sender):
   dir = MediaContainer()
   dir.title2 = 'Add Favourites'
+  dir.nocache = 1
   favourites = Dict.Get('favourites')
   
   try:
@@ -335,6 +344,7 @@ def addFavourite(sender):
 def RemoveFavouritesMenu(sender):
   dir = MediaContainer()
   dir.title2 = 'Remove Favourites'
+  dir.nocache = 1
   favourites = Dict.Get('favourites')
   favourites.sort()
   for favourite in favourites:
