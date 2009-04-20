@@ -146,14 +146,19 @@ def showMenu(pathNouns, path):
       name = name.text.strip()
     description = show.xpath('descendant::span[@class="zc-program-description"]')[0].text
     times = show.xpath('descendant::table[@class="zc-episode-times"]')[0].xpath('descendant::tr')
-    Log(len(times))
     for aTime in times:
       description = description + '\n' + aTime.xpath('child::td[@class="zc-sche-date"]')[0].text 
       description = description + ' ' + aTime.xpath('child::td[@class="zc-sche-time"]')[0].text
-      try: description = description + ' ' + aTime.xpath('child::td[@class="zc-channel"]')[0].text
-      except: pass
-      try: description = description + ' ' + aTime.xpath('child::td[@class="zc-callsign"]')[0].text
-      except: pass
+      channel = aTime.xpath('child::td[@class="zc-channel"]')[0]
+      try:
+        description = description + ' ' + channel.text
+      except:
+        description = description + ' ' + channel.xpath('child::span')[0].text
+      channelName = aTime.xpath('child::td[@class="zc-callsign"]')[0]
+      try:
+        description = description + ' ' + channelName.text
+      except:
+        description = description + ' ' + channelName.xpath('child::span')[0].text
     dir.Append(Function(DirectoryItem(noMenu, title=name, summary=description)))
   return dir
   
