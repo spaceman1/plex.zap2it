@@ -14,24 +14,24 @@ Electronic Programming Guide for Canada and USA
 0.8 uploaded April 20th 2009
 
 ###Change Log###
-Version 0.1
+######Version 0.1######
 * initial version
-Version 0.2
+######Version 0.2######
 * fixed midnight GMT issue
-Version 0.3
+######Version 0.3######
 * fixed 25 o'clock being displayed as midnight approaches
-Version 0.4
+######Version 0.4######
 * added option for 12 hour time format
-Version 0.5
+######Version 0.5######
 * added option to show/hide programmes in progress
 * improved caching
 * various fixes
-Version 0.6
+######Version 0.6######
 * Main menu shows next 12 hours
 * Added menu for next seven days
-Version 0.7
+######Version 0.7######
 * Hide and show selected channels
-Version 0.8
+######Version 0.8######
 * Search
 
 ###Setup###
