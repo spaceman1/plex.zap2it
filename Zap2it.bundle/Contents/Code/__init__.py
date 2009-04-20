@@ -71,7 +71,7 @@ def UpdateCache():
 ####################################################################################################
 
 # TODO: Add day to non-today menus
-# TODO: Add Search
+# TODO: Clean up Search
 # TODO: Add favourites
 
 def MainMenu():
