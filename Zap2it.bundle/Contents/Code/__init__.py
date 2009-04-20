@@ -136,15 +136,20 @@ def searchMenu(sender, query):
   return dir
 
 def showMenu(pathNouns, path):
+  shows = GetXML(SHOW_INDEX + String.Decode(pathNouns[0]), True).xpath('//table[@class="zc-episode"]')
+  if len(shows) == 0:
+    return movieMenu(String.Decode(pathNouns[0]))
+  
   dir = MediaContainer()
   dir.viewGroup = 'Details'
-  for show in GetXML(SHOW_INDEX + String.Decode(pathNouns[0]), True).xpath('//table[@class="zc-episode"]'):
+
+  for show in shows:
     name = show.xpath('descendant::span[@class="zc-program-episode"]')[0]
     try:
       name = name.xpath('child::a')[0].text
     except:
       name = name.text.strip()
-    description = show.xpath('descendant::span[@class="zc-program-description"]')[0].text
+    description = show.xpath('descendant::span[@class="zc-program-description"]')[0].text + '\n'
     times = show.xpath('descendant::table[@class="zc-episode-times"]')[0].xpath('descendant::tr')
     for aTime in times:
       description = description + '\n' + aTime.xpath('child::td[@class="zc-sche-date"]')[0].text 
@@ -162,6 +167,21 @@ def showMenu(pathNouns, path):
     dir.Append(Function(DirectoryItem(noMenu, title=name, summary=description)))
   return dir
   
+def movieMenu(pathNoun):
+  dir = MediaContainer()
+  dir.viewGroup = 'Details'
+  page = GetXML(SHOW_INDEX + pathNoun, True)
+  name = page.xpath('//h1[@id="zc-program-title"]')[0].text
+  description = page.xpath('//p[@id="zc-program-description"]')[0].text + '\n\n'
+  for aTime in page.xpath('//div[@id="zc-sc-ep-list"]')[0].xpath('child::ol[starts-with(@class,"zc-sc-ep-list-r")]'):
+    description = description + ' ' + aTime.xpath('descendant::li[@class="zc-sc-ep-list-l zc-sc-ep-list-wd"]')[0].text
+    description = description + ' ' + aTime.xpath('descendant::li[@class="zc-sc-ep-list-l zc-sc-ep-list-md"]')[0].text
+    description = description + ' ' + aTime.xpath('descendant::li[@class="zc-sc-ep-list-l zc-sc-ep-list-stet"]')[0].text
+    description = description + ' ' + aTime.xpath('descendant::li[@class="zc-sc-ep-list-l zc-sc-ep-list-chn"]')[0].text
+    description = description + ' ' + aTime.xpath('descendant::li[@class="zc-sc-ep-list-l zc-sc-ep-list-call"]')[0].text + '\n'
+  dir.Append(Function(DirectoryItem(noMenu, title=name, summary=description)))
+  return dir
+    
 ####################################################################################################
 
 def settingsMenu(sender):
