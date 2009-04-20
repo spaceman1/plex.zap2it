@@ -3,7 +3,7 @@ from PMS.Objects import *
 from PMS.Shortcuts import *
 
 
-import re, string, datetime, time, calendar  #, urlllib
+import re, string, datetime, time, calendar
 
 PLUGIN_PREFIX = '/video/zap2it'
 DAY_PREFIX = PLUGIN_PREFIX + '/day'
@@ -71,7 +71,6 @@ def UpdateCache():
 ####################################################################################################
 
 # TODO: Add day to non-today menus
-# TODO: Clean up Search
 # TODO: Add favourites
 
 def MainMenu():
