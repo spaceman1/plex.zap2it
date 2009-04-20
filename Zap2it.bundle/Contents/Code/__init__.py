@@ -3,18 +3,21 @@ from PMS.Objects import *
 from PMS.Shortcuts import *
 
 
-import re, string, datetime, time, calendar
+import re, string, datetime, time, calendar  #, urlllib
 
 PLUGIN_PREFIX = '/video/zap2it'
 DAY_PREFIX = PLUGIN_PREFIX + '/day'
+SEARCH_PREFIX = PLUGIN_PREFIX + '/search'
 PROVIDER_INDEX = 'http://tvlistings.zap2it.com/tvlistings/ZCGrid.do?aid=zap2it&isDescriptionOn=true'
+SEARCH_INDEX = 'http://tvlistings.zap2it.com/tvlistings/ZCSearch.do?searchType=simple&searchTerm='
+SHOW_INDEX = 'http://tvlistings.zap2it.com'
 DAY = 86400
 CACHE_TIME = DAY
 
 ####################################################################################################
 
 def Start():
-  Plugin.AddPrefixHandler(PLUGIN_PREFIX, MainMenu, L('Zap2it'))
+  Plugin.AddPrefixHandler(PLUGIN_PREFIX, MainMenu, L('Zap2it'), 'icon-default.gif', 'art-default.jpg')
   
   Plugin.AddViewGroup('Details', viewMode='InfoList', mediaType='items')
   Plugin.AddViewGroup('EpisodeList', viewMode='Episodes', mediaType='items')
@@ -69,20 +72,22 @@ def UpdateCache():
 
 # TODO: Add day to non-today menus
 # TODO: Add Search
+# TODO: Add favourites
 
 def MainMenu():
   dir = MediaContainer()
   
   if Dict.Get('postalCode') != '' and Dict.Get('provider') != '' and Dict.Get('timeFormat') != '':
     nextTime = getCurrentTimeSlot()
-    Plugin.AddPathRequestHandler(PLUGIN_PREFIX, TVMenu, '', '', '')
+    Plugin.AddPathRequestHandler(PLUGIN_PREFIX, TVMenu, '')
     
     for k in range(24):
-      dir.Append(DirectoryItem(nextTime, timeToDisplay(nextTime), '',''))
+      dir.Append(DirectoryItem(nextTime, timeToDisplay(nextTime), thumb=R('blank-black.gif')))
       nextTime = nextTime + 1800
-    dir.Append(Function(DirectoryItem(daysMenu, title=L('Another day'))))
+    dir.Append(Function(DirectoryItem(daysMenu, title=L('Another day'), thumb=R('blank-black.gif'))))
+    dir.Append(Function(SearchDirectoryItem(searchMenu, title='Search', prompt='Enter show name')))
     
-  dir.Append(Function(DirectoryItem(settingsMenu, title=L('Settings'))))
+  dir.Append(Function(DirectoryItem(settingsMenu, title=L('Settings'), thumb=R('icon-settings.png'))))
   return dir
 
 ####################################################################################################  
@@ -118,6 +123,40 @@ def getCurrentTimeSlot():
   now = now - (now % 1800)
   return now
 
+####################################################################################################
+
+def searchMenu(sender, query):
+  dir = MediaContainer()
+  Plugin.AddPathRequestHandler(SEARCH_PREFIX, showMenu, '', '', '')
+  for show in GetXML(SEARCH_INDEX + String.Quote(query, True), True).xpath('//li[@class="zc-sr-l"]'):
+    name = show.xpath('child::a')[0].text
+    description = show.xpath('child::span')[0].text
+    link = show.xpath('child::a')[0].get('href')
+    dir.Append(DirectoryItem(SEARCH_PREFIX + '/' + String.Encode(link) , title=name + ' ' + description))
+  return dir
+
+def showMenu(pathNouns, path):
+  dir = MediaContainer()
+  dir.viewGroup = 'Details'
+  for show in GetXML(SHOW_INDEX + String.Decode(pathNouns[0]), True).xpath('//table[@class="zc-episode"]'):
+    name = show.xpath('descendant::span[@class="zc-program-episode"]')[0]
+    try:
+      name = name.xpath('child::a')[0].text
+    except:
+      name = name.text.strip()
+    description = show.xpath('descendant::span[@class="zc-program-description"]')[0].text
+    times = show.xpath('descendant::table[@class="zc-episode-times"]')[0].xpath('descendant::tr')
+    Log(len(times))
+    for aTime in times:
+      description = description + '\n' + aTime.xpath('child::td[@class="zc-sche-date"]')[0].text 
+      description = description + ' ' + aTime.xpath('child::td[@class="zc-sche-time"]')[0].text
+      try: description = description + ' ' + aTime.xpath('child::td[@class="zc-channel"]')[0].text
+      except: pass
+      try: description = description + ' ' + aTime.xpath('child::td[@class="zc-callsign"]')[0].text
+      except: pass
+    dir.Append(Function(DirectoryItem(noMenu, title=name, summary=description)))
+  return dir
+  
 ####################################################################################################
 
 def settingsMenu(sender):
