@@ -2,7 +2,6 @@ from PMS import *
 from PMS.Objects import *
 from PMS.Shortcuts import *
 
-
 import re, string, datetime, time, calendar
 
 PLUGIN_PREFIX = '/video/zap2it'
@@ -13,6 +12,9 @@ SEARCH_INDEX = 'http://tvlistings.zap2it.com/tvlistings/ZCSearch.do?searchType=s
 SHOW_INDEX = 'http://tvlistings.zap2it.com'
 DAY = 86400
 CACHE_TIME = DAY
+
+# art-default from http://www.flickr.com/photos/kchrist/117806012
+# licensed as CC Attribution-Noncommercial 2.0 Generic
 
 ####################################################################################################
 
@@ -37,6 +39,7 @@ def CreateDict():
   Dict.Set('timeFormat', '24')
   Dict.Set('inProgress', True)
   Dict.Set('shows', dict())
+  Dict.Set('favourites', list())
   
 ####################################################################################################
 
@@ -72,6 +75,8 @@ def UpdateCache():
 
 # TODO: Add day to non-today menus
 # TODO: Add favourites
+# TODO: Handle searches with only one result (e.g. Futurama)
+# TODO: Link to saved folder
 
 def MainMenu():
   dir = MediaContainer()
@@ -196,6 +201,9 @@ def settingsMenu(sender):
       dir.Append(Function(DirectoryItem(hideChannelsMenu, title='Hide Channels')))
     if len(showChannelsMenu(0)) != 0:
       dir.Append(Function(DirectoryItem(showChannelsMenu, title='Show Channels')))
+    dir.Append(Function(DirectoryItem(AddFavouritesMenu, title='Add Favourites')))
+    if len(Dict.Get('favourites')) != 0:
+      dir.Append(Function(DirectoryItem(RemoveFavouritesMenu, title='Remove Favourites')))
   return dir
 
 ####################################################################################################
@@ -288,6 +296,55 @@ def showChannel(sender):
   (num, name) = sender.itemTitle.split(' ')
   channels = Dict.Get('channels')
   channels[int(num)]['enabled'] = True
+  return
+
+####################################################################################################
+
+def AddFavouritesMenu(sender):
+  dir = MediaContainer()
+  dir.title2 = 'Add Favourites'
+  favourites = Dict.Get('favourites')
+  
+  try:
+    if len(AddFavouritesMenu.allShows) != 0:
+      for show in AddFavouritesMenu.allShows:
+        if not show in favourites:
+          dir.Append(Function(DirectoryItem(addFavourite, title=show)))
+      return dir  
+  except AttributeError:
+    AddFavouritesMenu.allShows = list()
+    slots = Dict.Get('shows')
+    #showNames = list()
+    
+    for slot in slots.itervalues():
+      for listing in slot:
+        name = listing['title']
+        if not name in AddFavouritesMenu.allShows and not name in favourites:
+          AddFavouritesMenu.allShows.append(name)
+    AddFavouritesMenu.allShows.sort()
+    for showName in AddFavouritesMenu.allShows:
+      dir.Append(Function(DirectoryItem(addFavourite, title=showName)))
+    return dir
+  
+def addFavourite(sender):
+  favourites = Dict.Get('favourites')
+  favourites.append(sender.itemTitle)
+  Dict.Set('favourites', favourites)
+  return
+  
+def RemoveFavouritesMenu(sender):
+  dir = MediaContainer()
+  dir.title2 = 'Remove Favourites'
+  favourites = Dict.Get('favourites')
+  favourites.sort()
+  for favourite in favourites:
+    dir.Append(Function(DirectoryItem(removeFavourite, title=favourite)))
+  return dir
+
+def removeFavourite(sender):
+  favourites = Dict.Get('favourites')
+  favourites.remove(sender.itemTitle)
+  Dict.Set('favourites', favourites)
   return
   
 ####################################################################################################
