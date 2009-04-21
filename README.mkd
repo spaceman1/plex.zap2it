@@ -41,6 +41,10 @@ Electronic Programming Guide for Canada and USA
 ####Version 0.8####
 * Search
 
+####Version 0.9####
+* Favourite shows float to top of list
+* Search fixes
+
 ###Setup###
 * Choose Settings
 * Enter your ZIP or Postal Code
