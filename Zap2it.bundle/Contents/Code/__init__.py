@@ -137,7 +137,11 @@ def searchMenu(sender, query):
   
   shows = GetXML(SEARCH_INDEX + String.Quote(query, True), True).xpath('//li[@class="zc-sr-l"]')
   if len(shows) == 0:
-    return grabShows(GetXML(SEARCH_INDEX + String.Quote(query, True), True).xpath('//table[@class="zc-episode"]'))
+    # Here there was only one result
+    shows = GetXML(SEARCH_INDEX + String.Quote(query, True), True).xpath('//table[@class="zc-episode"]')
+    if len(shows) == 0:
+      return movieMenu(SEARCH_INDEX + query)
+    return grabShows(shows)
   
   for show in shows:
     name = show.xpath('child::a')[0].text
@@ -149,7 +153,7 @@ def searchMenu(sender, query):
 def showMenu(pathNouns, path):
   shows = GetXML(SHOW_INDEX + String.Decode(pathNouns[0]), True).xpath('//table[@class="zc-episode"]')
   if len(shows) == 0:
-    return movieMenu(String.Decode(pathNouns[0]))
+    return movieMenu(SHOW_INDEX + String.Decode(pathNouns[0]))
   return grabShows(shows)
   
 
@@ -183,10 +187,10 @@ def grabShows(shows):
     dir.Append(Function(DirectoryItem(noMenu, title=name, summary=description)))
   return dir
   
-def movieMenu(pathNoun):
+def movieMenu(url):
   dir = MediaContainer()
   dir.viewGroup = 'Details'
-  page = GetXML(SHOW_INDEX + pathNoun, True)
+  page = GetXML(url, True)
   name = page.xpath('//h1[@id="zc-program-title"]')[0].text
   description = page.xpath('//p[@id="zc-program-description"]')[0].text + '\n\n'
   for aTime in page.xpath('//div[@id="zc-sc-ep-list"]')[0].xpath('child::ol[starts-with(@class,"zc-sc-ep-list-r")]'):
