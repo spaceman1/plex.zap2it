@@ -400,6 +400,7 @@ def TVMenu(pathNouns, path):
   dir.viewGroup = 'Details'
   menuTime = int(pathNouns[0])
   dir.title2 = timeToDisplay(menuTime)
+  dir.nocache = 1
   
   Log(menuTime)
   listings = Dict.Get('shows')
@@ -409,10 +410,22 @@ def TVMenu(pathNouns, path):
   
   displayInProgress = Dict.Get('inProgress')
   channels = Dict.Get('channels')
+  favourites = Dict.Get('favourites')
+  hits = list()
+  misses = list()
   for listing in listings:
     timeString = timeToDisplay(listing['start']) + ' - ' + timeToDisplay(listing['end'])
     if (displayInProgress or not listing['inProgress']) and channels[int(listing['channelNum'])]['enabled']:
-      dir.Append(Function(DirectoryItem(noMenu, title=listing['title'], subtitle=listing['channelNum'] + ' ' + listing['channelName'] + ' ' + timeString, summary=listing['summary'])))
+      newItem = Function(DirectoryItem(noMenu, title=listing['title'], subtitle=listing['channelNum'] + ' ' + listing['channelName'] + ' ' + timeString, summary=listing['summary']))
+      if listing['title'] in favourites:
+        hits.append(newItem)
+      else:
+        misses.append(newItem)
+        
+  for hit in hits:
+    dir.Append(hit)
+  for miss in misses:
+    dir.Append(miss)
 
   return dir
   
