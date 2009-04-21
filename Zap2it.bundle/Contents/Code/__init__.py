@@ -74,7 +74,7 @@ def UpdateCache():
 ####################################################################################################
 
 # TODO: Add day to non-today menus
-# TODO: Handle searches with only one result (e.g. Futurama)
+# TODO: Handle searches with spaces
 # TODO: Link to saved folder
 # TODO: Option to collapse entries with same name + description
 # TODO: Ensure hidden channels don't show up in search results etc.
@@ -140,7 +140,7 @@ def searchMenu(sender, query):
     # Here there was only one result
     shows = GetXML(SEARCH_INDEX + String.Quote(query, True), True).xpath('//table[@class="zc-episode"]')
     if len(shows) == 0:
-      return movieMenu(SEARCH_INDEX + query)
+      return movieMenu(SEARCH_INDEX + String.Quote(query, True))
     return grabShows(shows)
   
   for show in shows:
