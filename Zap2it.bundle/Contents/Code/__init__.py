@@ -74,12 +74,14 @@ def UpdateCache():
 ####################################################################################################
 
 # TODO: Add day to non-today menus
-# TODO: Add favourites
 # TODO: Handle searches with only one result (e.g. Futurama)
 # TODO: Link to saved folder
+# TODO: Option to collapse entries with same name + description
+# TODO: Ensure hidden channels don't show up in search results etc.
 
 def MainMenu():
   dir = MediaContainer()
+  dir.nocache = 1
   
   if Dict.Get('postalCode') != '' and Dict.Get('provider') != '' and Dict.Get('timeFormat') != '':
     nextTime = getCurrentTimeSlot()
@@ -132,7 +134,12 @@ def getCurrentTimeSlot():
 def searchMenu(sender, query):
   dir = MediaContainer()
   Plugin.AddPathRequestHandler(SEARCH_PREFIX, showMenu, '', '', '')
-  for show in GetXML(SEARCH_INDEX + String.Quote(query, True), True).xpath('//li[@class="zc-sr-l"]'):
+  
+  shows = GetXML(SEARCH_INDEX + String.Quote(query, True), True).xpath('//li[@class="zc-sr-l"]')
+  if len(shows) == 0:
+    return grabShows(GetXML(SEARCH_INDEX + String.Quote(query, True), True).xpath('//table[@class="zc-episode"]'))
+  
+  for show in shows:
     name = show.xpath('child::a')[0].text
     description = show.xpath('child::span')[0].text
     link = show.xpath('child::a')[0].get('href')
@@ -143,10 +150,15 @@ def showMenu(pathNouns, path):
   shows = GetXML(SHOW_INDEX + String.Decode(pathNouns[0]), True).xpath('//table[@class="zc-episode"]')
   if len(shows) == 0:
     return movieMenu(String.Decode(pathNouns[0]))
+  return grabShows(shows)
   
+
+def grabShows(shows):
+  Log('grabShows called')
+  Log(len(shows))
   dir = MediaContainer()
   dir.viewGroup = 'Details'
-
+  
   for show in shows:
     name = show.xpath('descendant::span[@class="zc-program-episode"]')[0]
     try:
@@ -340,6 +352,8 @@ def addFavourite(sender):
   favourites.append(sender.itemTitle)
   Dict.Set('favourites', favourites)
   return
+
+####################################################################################################
   
 def RemoveFavouritesMenu(sender):
   dir = MediaContainer()
@@ -400,9 +414,7 @@ def TVMenu(pathNouns, path):
   dir.viewGroup = 'Details'
   menuTime = int(pathNouns[0])
   dir.title2 = timeToDisplay(menuTime)
-  dir.nocache = 1
   
-  Log(menuTime)
   listings = Dict.Get('shows')
   if not menuTime in listings:
     grabListings(menuTime, listings)
