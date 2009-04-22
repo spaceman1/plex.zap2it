@@ -11,7 +11,7 @@ Videos
 Electronic Programming Guide for Canada and USA
 
 ###Version###
-0.8 uploaded April 20th 2009
+0.10 uploaded April 22nd 2009
 
 ###Change Log###
 ####Version 0.1####
@@ -44,6 +44,10 @@ Electronic Programming Guide for Canada and USA
 ####Version 0.9####
 * Favourite shows float to top of list
 * Search fixes
+
+####Version 0.10####
+* Option to hide same show on different channels
+* Fixes for end times and in progress dupes
 
 ###Setup###
 * Choose Settings

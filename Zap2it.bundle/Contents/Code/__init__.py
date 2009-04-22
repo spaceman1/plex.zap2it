@@ -79,7 +79,7 @@ def UpdateCache():
 # TODO: Add day to non-today menus
 # TODO: Link to saved folder
 # TODO: Clean old time slots from dictionary
-# TODO: replaceParent recommendation
+# TODO: Translate times to 24hr in search results
 
 def MainMenu():
   dir = MediaContainer()
@@ -543,25 +543,4 @@ def getPref(id):
 def addPref(id, kind, default, name):
   Prefs.Add(id, kind, pickle.dumps(default), name)
   
-####################################################################################################
-
-def collapseShows(shows):
-  k = list()
-  v = list()
-  
-  for show in shows:
-    k.append(frozenset([show['title'], show['summary'], show['start'], show['end']]))
-    v.append(show)
-  
-  # reverse order so the lowest channel number ends up in the dict
-  k.reverse()
-  v.reverse()
-  
-  # get shows with unique [title, summary, start, end]
-  d = dict(zip(k, v))
-  s = d.values()
-  # order back out of the dict isn't guaranteed
-  s.sort(key=operator.itemgetter('channelNum'))
-  return s
-
 ####################################################################################################
