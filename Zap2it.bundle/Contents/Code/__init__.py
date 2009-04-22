@@ -2,7 +2,7 @@ from PMS import *
 from PMS.Objects import *
 from PMS.Shortcuts import *
 
-import re, string, datetime, time, calendar, pickle
+import re, string, datetime, time, calendar, pickle, operator
 
 PLUGIN_PREFIX = '/video/zap2it'
 DAY_PREFIX = PLUGIN_PREFIX + '/day'
@@ -522,5 +522,26 @@ def getPref(id):
   
 def addPref(id, kind, default, name):
   Prefs.Add(id, kind, pickle.dumps(default), name)
+  
 ####################################################################################################
 
+def collapseShows(shows):
+  k = list()
+  v = list()
+  
+  for show in shows:
+    k.append(frozenset(show['title'], show['summary']))
+    v.append(show)
+  
+  # reverse order so the lowest channel number ends up in the dict
+  k.reverse()
+  v.reverse()
+  
+  # get shows with unique [title, summary]
+  d = dict(zip(k, v))
+  s = d.values()
+  # order back out of the dict isn't guaranteed
+  s.sort(key=operator.itemgetter('channelNum'))
+  return s
+
+####################################################################################################
