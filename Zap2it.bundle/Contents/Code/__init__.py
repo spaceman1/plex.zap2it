@@ -33,19 +33,30 @@ def Start():
 ####################################################################################################
 
 def CreateDict():
-  Dict.Set('channels', dict())
-  Dict.Set('postalCode', '')
-  Dict.Set('provider', '')
-  Dict.Set('timeFormat', '24')
-  Dict.Set('inProgress', True)
+#  Dict.Set('channels', dict())
+#  Dict.Set('postalCode', '')
+#  Dict.Set('provider', '')
+#  Dict.Set('timeFormat', '24')
+#  Dict.Set('inProgress', True)
   Dict.Set('shows', dict())
-  Dict.Set('favourites', list())
+#  Dict.Set('favourites', list())
+  
+def CreatePrefs():
+  Prefs.Add('channels', dict, dict(), 'channels')
+  Prefs.Add('postalCode', string, '', 'postalCode')
+#  Prefs.Add('provider', str, '', 'provider')
+  Prefs.Add('provider', 'text', '', L("Provider"))
+  Prefs.Add('timeFormat', string, '24', 'timeFormat')
+  Prefs.Add('inProgress', bool, True, 'inProgress')
+  Prefs.Add('favourites', list, list(), 'favourites')
+  Prefs.Add('email', 'text', '', L("Email"))
+  Prefs.Set('email', 'bogus@bogus.com')
   
 ####################################################################################################
 
 def UpdateCache():
   # Get TV Page
-  if Dict.Get('postalCode') == '' or Dict.Get('provider') == '' or Dict.Get('timeFormat') == '':
+  if Prefs.Get('postalCode') == '' or Prefs.Get('provider') == '' or Prefs.Get('timeFormat') == '':
     return
   now = getCurrentTimeSlot()
   
@@ -57,18 +68,18 @@ def UpdateCache():
   for slot in range(now, now + DAY, 3 * 3600):
     grabListings(slot, shows)
 
-  channels = Dict.Get('channels')
+  channels = Prefs.Get('channels')
   if type(channels) != type(dict):
     channels = dict()
 
-  url = PROVIDER_INDEX + '&zipcode=' + Dict.Get('postalCode') + '&lineupId=' + Dict.Get('provider')
+  url = PROVIDER_INDEX + '&zipcode=' + Prefs.Get('postalCode') + '&lineupId=' + Prefs.Get('provider')
   for td in GetXML(url, True).xpath('//td[starts-with(@class,"zc-st")]'):
     channelNum = int(td.xpath('descendant::span[@class="zc-st-n"]')[0].text)
     channelName = td.xpath('descendant::span[@class="zc-st-c"]')[0].text
     if not channelNum in channels:
       channels[channelNum] = dict(name=channelName, enabled=True)
       
-  Dict.Set('channels', channels)
+  Prefs.Set('channels', channels)
       
 
 ####################################################################################################
@@ -76,13 +87,15 @@ def UpdateCache():
 # TODO: Add day to non-today menus
 # TODO: Link to saved folder
 # TODO: Option to collapse entries with same name + description
-# TODO: Ensure hidden channels don't show up in search results etc.
+# TODO: Move settings into their own file
+# TODO: Clean old time slots from dictionary
+# TODO: replaceParent recommendation
 
 def MainMenu():
   dir = MediaContainer()
   dir.nocache = 1
   
-  if Dict.Get('postalCode') != '' and Dict.Get('provider') != '' and Dict.Get('timeFormat') != '':
+  if Prefs.Get('postalCode') != '' and Prefs.Get('provider') != '' and Prefs.Get('timeFormat') != '':
     nextTime = getCurrentTimeSlot()
     Plugin.AddPathRequestHandler(PLUGIN_PREFIX, TVMenu, '')
     
@@ -108,7 +121,7 @@ def timeToDisplay(t):
   hour = (t // 3600) % 24
   minute = (t % 3600) // 60
   #Log(str(hour) + ':' + str(minute))
-  if Dict.Get('timeFormat') == '12':
+  if Prefs.Get('timeFormat') == '12':
     if hour >= 12:
       meridian = 'PM'
     else:
@@ -160,7 +173,7 @@ def showMenu(pathNouns, path):
 def grabShows(shows):
   dir = MediaContainer()
   dir.viewGroup = 'Details'
-  channels = Dict.Get('channels')
+  channels = Prefs.Get('channels')
   for show in shows:
     name = show.xpath('descendant::span[@class="zc-program-episode"]')[0]
     try:
@@ -194,7 +207,7 @@ def movieMenu(url):
   page = GetXML(url, True)
   name = page.xpath('//h1[@id="zc-program-title"]')[0].text
   description = page.xpath('//p[@id="zc-program-description"]')[0].text + '\n\n'
-  channels = Dict.Get('channels')
+  channels = Prefs.Get('channels')
   for aTime in page.xpath('//div[@id="zc-sc-ep-list"]')[0].xpath('child::ol[starts-with(@class,"zc-sc-ep-list-r")]'):
     channel = aTime.xpath('descendant::li[@class="zc-sc-ep-list-l zc-sc-ep-list-chn"]')[0].text
     if channels[int(channel)]['enabled']:
@@ -213,19 +226,19 @@ def settingsMenu(sender):
   dir.title2 = L('Settings')
   dir.nocache = 1
   dir.Append(Function(SearchDirectoryItem(setPostalCode, title='ZIP or Postal Code', prompt='Enter your ZIP or Postal Code')))
-  if Dict.Get('postalCode') != '':
+  if Prefs.Get('postalCode') != '':
     dir.Append(Function(PopupDirectoryItem(providerMenu, title='Provider')))
-  if Dict.Get('provider') != '':  
+  if Prefs.Get('provider') != '':  
     dir.Append(Function(PopupDirectoryItem(timeFormatMenu, title='Time Format')))
     dir.Append(Function(PopupDirectoryItem(inProgressMenu, title='Shows in progress')))
-    if len(hideChannelsMenu(0)) != 0:
-      dir.Append(Function(DirectoryItem(hideChannelsMenu, title='Hide Channels')))
-    if len(showChannelsMenu(0)) != 0:
-      dir.Append(Function(DirectoryItem(showChannelsMenu, title='Show Channels')))
+    #if len(hideChannelsMenu(0)) != 0:
+    dir.Append(Function(DirectoryItem(hideChannelsMenu, title='Hide Channels')))
+    #if len(showChannelsMenu(0)) != 0:
+    dir.Append(Function(DirectoryItem(showChannelsMenu, title='Show Channels')))
     dir.Append(Function(DirectoryItem(AddFavouritesMenu, title='Add Favourites')))
     
-    favourites = Dict.Get('favourites')
-    if favourites == None: Dict.Set('favourites', list())
+    favourites = Prefs.Get('favourites')
+    if favourites == None: Prefs.Add('favourites', list, list(), 'favourites')
     if len(favourites) != 0:
       dir.Append(Function(DirectoryItem(RemoveFavouritesMenu, title='Remove Favourites')))
   return dir
@@ -234,14 +247,14 @@ def settingsMenu(sender):
   
 def setPostalCode(sender, query):
   query = string.join(query.split(' '),'') # No spaces please
-  Dict.Set('postalCode', query)
+  Prefs.Set('postalCode', query)
   return
   
 ####################################################################################################
 
 def providerMenu(sender):
   dir = MediaContainer()
-  url = 'http://tvlistings.zap2it.com/tvlistings/ZBChooseProvider.do?zipcode=' + Dict.Get('postalCode') + '&method=getProviders'
+  url = 'http://tvlistings.zap2it.com/tvlistings/ZBChooseProvider.do?zipcode=' + Prefs.Get('postalCode') + '&method=getProviders'
   providers = XML.ElementFromString(HTTP.Request(url=url, cacheTime=CACHE_TIME), True).xpath('//a[starts-with(@href, "ZCGrid.do?method=decideFwdForLineup")]')
   for provider in providers:
     dir.Append(Function(DirectoryItem(setProvider, title=provider.text)))
@@ -249,10 +262,14 @@ def providerMenu(sender):
   
 def setProvider(sender):
   Log(sender.itemTitle)
-  url = 'http://tvlistings.zap2it.com/tvlistings/ZBChooseProvider.do?zipcode=' + Dict.Get('postalCode') + '&method=getProviders'
+  url = 'http://tvlistings.zap2it.com/tvlistings/ZBChooseProvider.do?zipcode=' + Prefs.Get('postalCode') + '&method=getProviders'
 
   setProviderURL = XML.ElementFromString(HTTP.Request(url=url, cacheTime=CACHE_TIME), True).xpath('//a[text() = "' + sender.itemTitle + '"]')[0].get('href')
-  Dict.Set('provider', re.search(r'lineupId=(.*)', setProviderURL).group(1))
+  Log(re.search(r'lineupId=(.*)', setProviderURL).group(1))
+  Log(type(re.search(r'lineupId=(.*)', setProviderURL).group(1)))
+  #Prefs.Set('provider', re.search(r'lineupId=(.*)', setProviderURL).group(1))
+  
+  Prefs.Set('provider', 'randomString')
   UpdateCache()
   return
 
@@ -266,7 +283,7 @@ def timeFormatMenu(sender):
 
 def setTimeFormat(sender):
   timeFormat = re.match(r'(\d\d).*', sender.itemTitle).group(1)
-  Dict.Set('timeFormat', timeFormat)
+  Prefs.Set('timeFormat', timeFormat)
   return
   
 ####################################################################################################
@@ -279,9 +296,9 @@ def inProgressMenu(sender):
 
 def setInProgress(sender):
   if sender.itemTitle == 'Show':
-    Dict.Set('inProgress', True)
+    Prefs.Set('inProgress', True)
   else:
-    Dict.Set('inProgress', False)
+    Prefs.Set('inProgress', False)
   return
   
 ####################################################################################################
@@ -290,7 +307,8 @@ def hideChannelsMenu(sender):
   dir = MediaContainer()
   dir.title2 = 'Hide Channels'
   dir.nocache = 1
-  channels = Dict.Get('channels')
+  if sender == 0: dir.replaceParent = 1
+  channels = Prefs.Get('channels')
   channelList = channels.keys()
   channelList.sort()
   for channel in channelList:
@@ -300,10 +318,10 @@ def hideChannelsMenu(sender):
   
 def hideChannel(sender):
   (num, name) = sender.itemTitle.split(' ')
-  channels = Dict.Get('channels')
+  channels = Prefs.Get('channels')
   channels[int(num)]['enabled'] = False
-  Dict.Set('channels', channels)
-  return
+  Prefs.Set('channels', channels)
+  return hideChannelsMenu(0)
 
 ####################################################################################################
 
@@ -311,7 +329,7 @@ def showChannelsMenu(sender):
   dir = MediaContainer()
   dir.title2 = 'Show Channels'
   dir.nocache = 1
-  channels = Dict.Get('channels')
+  channels = Prefs.Get('channels')
   channelList = channels.keys()
   channelList.sort()
   for channel in channelList:
@@ -321,9 +339,9 @@ def showChannelsMenu(sender):
   
 def showChannel(sender):
   (num, name) = sender.itemTitle.split(' ')
-  channels = Dict.Get('channels')
+  channels = Prefs.Get('channels')
   channels[int(num)]['enabled'] = True
-  Dict.Set('channels', channels)
+  Prefs.Set('channels', channels)
   return
 
 ####################################################################################################
@@ -332,7 +350,7 @@ def AddFavouritesMenu(sender):
   dir = MediaContainer()
   dir.title2 = 'Add Favourites'
   dir.nocache = 1
-  favourites = Dict.Get('favourites')
+  favourites = Prefs.Get('favourites')
   
   try:
     if len(AddFavouritesMenu.allShows) != 0:
@@ -356,9 +374,9 @@ def AddFavouritesMenu(sender):
     return dir
   
 def addFavourite(sender):
-  favourites = Dict.Get('favourites')
+  favourites = Prefs.Get('favourites')
   favourites.append(sender.itemTitle)
-  Dict.Set('favourites', favourites)
+  Prefs.Set('favourites', favourites)
   return
 
 ####################################################################################################
@@ -367,22 +385,22 @@ def RemoveFavouritesMenu(sender):
   dir = MediaContainer()
   dir.title2 = 'Remove Favourites'
   dir.nocache = 1
-  favourites = Dict.Get('favourites')
+  favourites = Prefs.Get('favourites')
   favourites.sort()
   for favourite in favourites:
     dir.Append(Function(DirectoryItem(removeFavourite, title=favourite)))
   return dir
 
 def removeFavourite(sender):
-  favourites = Dict.Get('favourites')
+  favourites = Prefs.Get('favourites')
   favourites.remove(sender.itemTitle)
-  Dict.Set('favourites', favourites)
+  Prefs.Set('favourites', favourites)
   return
   
 ####################################################################################################
 
 def grabListings(t, shows):
-  url = PROVIDER_INDEX + '&zipcode=' + Dict.Get('postalCode') + '&lineupId=' + Dict.Get('provider') + '&fromTimeInMillis=' + str(t) + '000'
+  url = PROVIDER_INDEX + '&zipcode=' + Prefs.Get('postalCode') + '&lineupId=' + Prefs.Get('provider') + '&fromTimeInMillis=' + str(t) + '000'
   for td in GetXML(url, True).xpath('//td[starts-with(@class,"zc-pg")]'):
     try: showName = td.xpath('child::a')[0].text.encode('ascii','ignore')
     except: showName = ''
@@ -428,9 +446,9 @@ def TVMenu(pathNouns, path):
     grabListings(menuTime, listings)
   listings = listings[menuTime]
   
-  displayInProgress = Dict.Get('inProgress')
-  channels = Dict.Get('channels')
-  favourites = Dict.Get('favourites')
+  displayInProgress = Prefs.Get('inProgress')
+  channels = Prefs.Get('channels')
+  favourites = Prefs.Get('favourites')
   hits = list()
   misses = list()
   for listing in listings:
@@ -475,7 +493,6 @@ def daysMenu(sender):
   return dir
 
 def dayMenu(pathNouns, path):
-  Log('daymenu called')
   dir = MediaContainer()  
   Plugin.AddPathRequestHandler(PLUGIN_PREFIX, TVMenu, '', '', '')
     
