@@ -451,13 +451,16 @@ def TVMenu(pathNouns, path):
   dir.viewGroup = 'Details'
   menuTime = int(pathNouns[0])
   dir.title2 = timeToDisplay(menuTime)
+  dir.nocache = 1
   
   listings = Dict.Get('shows')
   if not menuTime in listings:
     grabListings(menuTime, listings)
   listings = listings[menuTime]
   
-  if getPref('collapseShows'): listings = collapseShows(listings)
+  collapse = getPref('collapseShows')
+  if collapse:
+    keyDict = dict()
   
   displayInProgress = getPref('inProgress')
   channels = getPref('channels')
@@ -467,11 +470,15 @@ def TVMenu(pathNouns, path):
   for listing in listings:
     timeString = timeToDisplay(listing['start']) + ' - ' + timeToDisplay(listing['end'])
     if (displayInProgress or not listing['inProgress']) and channels[int(listing['channelNum'])]['enabled']:
-      newItem = Function(DirectoryItem(noMenu, title=listing['title'], subtitle=listing['channelNum'] + ' ' + listing['channelName'] + ' ' + timeString, summary=listing['summary']))
-      if listing['title'] in favourites:
-        hits.append(newItem)
-      else:
-        misses.append(newItem)
+      # check if we should collapse it
+      listingKey = (frozenset([listing['title'], listing['summary'], listing['start'], listing['end']]))
+      if not collapse or listingKey not in keyDict:
+        keyDict[listingKey] = '' 
+        newItem = Function(DirectoryItem(noMenu, title=listing['title'], subtitle=listing['channelNum'] + ' ' + listing['channelName'] + ' ' + timeString, summary=listing['summary']))
+        if listing['title'] in favourites:
+          hits.append(newItem)
+        else:
+          misses.append(newItem)
         
   for hit in hits:
     dir.Append(hit)
@@ -514,6 +521,7 @@ def dayMenu(pathNouns, path):
     dir.Append(DirectoryItem(PLUGIN_PREFIX + '/' + str(nextTime), timeToDisplay(nextTime), '',''))
     nextTime = nextTime + 1800
   return dir
+
 ####################################################################################################
 
 def noMenu(sender):
