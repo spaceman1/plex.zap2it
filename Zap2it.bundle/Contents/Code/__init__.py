@@ -78,7 +78,6 @@ def UpdateCache():
 
 # TODO: Add day to non-today menus
 # TODO: Link to saved folder
-# TODO: Add start and end time to collapse shows frozenset
 # TODO: Clean old time slots from dictionary
 # TODO: replaceParent recommendation
 
@@ -435,7 +434,7 @@ def grabListings(t, shows):
         
         startTime = int(re.search(r'(?:([^,]+),)*', td.get('onclick')).group(1)) // 1000
         startSlot = startTime - (startTime % 1800)
-        duration = int(re.search(r'(\d+)', td.get('style')).group(0)) * 15 # seconds
+        duration = int(re.search(r'(\d+)\)', td.get('onclick')).group(1)) * 60 # minutes->seconds
         endTime = startTime + duration
         endSlot = endTime - (endTime % 1800)
         
