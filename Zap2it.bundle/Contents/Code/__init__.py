@@ -33,19 +33,14 @@ def Start():
 ####################################################################################################
 
 def CreateDict():
-#  Dict.Set('channels', dict())
-#  Dict.Set('postalCode', '')
-#  Dict.Set('provider', '')
-#  Dict.Set('timeFormat', '24')
-#  Dict.Set('inProgress', True)
   Dict.Set('shows', dict())
-#  Dict.Set('favourites', list())
   
 def CreatePrefs():
   addPref('channels', 'text', dict(), L('Channels')) # dict
   addPref('postalCode', 'text', '', L('Postal Code'))
   addPref('provider', 'text', '', L('Provider'))
   addPref('timeFormat', 'text', '24', L('Time Format'))
+  addPref('collapseShows', 'text', False, L('Collapse Shows'))
   addPref('inProgress', 'text', True, L('In Progress')) # bool
   addPref('favourites', 'text', list(), L('Favourites')) # list
   
@@ -83,8 +78,7 @@ def UpdateCache():
 
 # TODO: Add day to non-today menus
 # TODO: Link to saved folder
-# TODO: Option to collapse entries with same name + description
-# TODO: Move settings into their own file
+# TODO: Add start and end time to collapse shows frozenset
 # TODO: Clean old time slots from dictionary
 # TODO: replaceParent recommendation
 
@@ -233,9 +227,9 @@ def settingsMenu(sender):
     #if len(showChannelsMenu(0)) != 0:
     dir.Append(Function(DirectoryItem(showChannelsMenu, title='Show Channels')))
     dir.Append(Function(DirectoryItem(AddFavouritesMenu, title='Add Favourites')))
+    dir.Append(Function(PopupDirectoryItem(collapseShowsMenu, title='Duplicates')))
     
     favourites = getPref('favourites')
-    if favourites == None: addPref('favourites', list, list(), 'favourites')
     if len(favourites) != 0:
       dir.Append(Function(DirectoryItem(RemoveFavouritesMenu, title='Remove Favourites')))
   return dir
@@ -297,6 +291,23 @@ def setInProgress(sender):
     setPref('inProgress', False)
   return
   
+####################################################################################################
+
+def collapseShowsMenu(sender):
+  dir = MediaContainer()
+  dir.Append(Function(DirectoryItem(setCollapse, title='Show')))
+  dir.Append(Function(DirectoryItem(setCollapse, title='Hide')))
+  return dir
+  
+def setCollapse(sender):
+  if sender.itemTitle == 'Show':
+    v = False
+  else:
+    v = True
+  setPref('collapseShows', v)
+  
+  return
+
 ####################################################################################################
 
 def hideChannelsMenu(sender):
@@ -430,7 +441,7 @@ def grabListings(t, shows):
         
         if not startSlot in shows: shows[startSlot] = list()
         shows[startSlot].append(dict(title=showName, channelNum=channelNum, channelName=channelName, start=startTime, end=endTime, summary=description, inProgress=False))
-        for slot in range(startSlot, endSlot, 1800):
+        for slot in range(startSlot + 1800, endSlot, 1800):
           if not slot in shows: shows[slot] = list()
           shows[slot].append(dict(title=showName, channelNum=channelNum, channelName=channelName, start=startTime, end=endTime, summary=description, inProgress=True))
 
@@ -446,6 +457,8 @@ def TVMenu(pathNouns, path):
   if not menuTime in listings:
     grabListings(menuTime, listings)
   listings = listings[menuTime]
+  
+  if getPref('collapseShows'): listings = collapseShows(listings)
   
   displayInProgress = getPref('inProgress')
   channels = getPref('channels')
@@ -530,14 +543,14 @@ def collapseShows(shows):
   v = list()
   
   for show in shows:
-    k.append(frozenset(show['title'], show['summary']))
+    k.append(frozenset([show['title'], show['summary'], show['start'], show['end']]))
     v.append(show)
   
   # reverse order so the lowest channel number ends up in the dict
   k.reverse()
   v.reverse()
   
-  # get shows with unique [title, summary]
+  # get shows with unique [title, summary, start, end]
   d = dict(zip(k, v))
   s = d.values()
   # order back out of the dict isn't guaranteed
