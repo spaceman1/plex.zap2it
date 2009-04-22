@@ -2,7 +2,7 @@ from PMS import *
 from PMS.Objects import *
 from PMS.Shortcuts import *
 
-import re, string, datetime, time, calendar
+import re, string, datetime, time, calendar, pickle
 
 PLUGIN_PREFIX = '/video/zap2it'
 DAY_PREFIX = PLUGIN_PREFIX + '/day'
@@ -42,21 +42,18 @@ def CreateDict():
 #  Dict.Set('favourites', list())
   
 def CreatePrefs():
-  Prefs.Add('channels', dict, dict(), 'channels')
-  Prefs.Add('postalCode', string, '', 'postalCode')
-#  Prefs.Add('provider', str, '', 'provider')
-  Prefs.Add('provider', 'text', '', L("Provider"))
-  Prefs.Add('timeFormat', string, '24', 'timeFormat')
-  Prefs.Add('inProgress', bool, True, 'inProgress')
-  Prefs.Add('favourites', list, list(), 'favourites')
-  Prefs.Add('email', 'text', '', L("Email"))
-  Prefs.Set('email', 'bogus@bogus.com')
+  addPref('channels', 'text', dict(), L('Channels')) # dict
+  addPref('postalCode', 'text', '', L('Postal Code'))
+  addPref('provider', 'text', '', L('Provider'))
+  addPref('timeFormat', 'text', '24', L('Time Format'))
+  addPref('inProgress', 'text', True, L('In Progress')) # bool
+  addPref('favourites', 'text', list(), L('Favourites')) # list
   
 ####################################################################################################
 
 def UpdateCache():
   # Get TV Page
-  if Prefs.Get('postalCode') == '' or Prefs.Get('provider') == '' or Prefs.Get('timeFormat') == '':
+  if getPref('postalCode') == '' or getPref('provider') == '' or getPref('timeFormat') == '':
     return
   now = getCurrentTimeSlot()
   
@@ -68,18 +65,18 @@ def UpdateCache():
   for slot in range(now, now + DAY, 3 * 3600):
     grabListings(slot, shows)
 
-  channels = Prefs.Get('channels')
+  channels = getPref('channels')
   if type(channels) != type(dict):
     channels = dict()
 
-  url = PROVIDER_INDEX + '&zipcode=' + Prefs.Get('postalCode') + '&lineupId=' + Prefs.Get('provider')
+  url = PROVIDER_INDEX + '&zipcode=' + getPref('postalCode') + '&lineupId=' + getPref('provider')
   for td in GetXML(url, True).xpath('//td[starts-with(@class,"zc-st")]'):
     channelNum = int(td.xpath('descendant::span[@class="zc-st-n"]')[0].text)
     channelName = td.xpath('descendant::span[@class="zc-st-c"]')[0].text
     if not channelNum in channels:
       channels[channelNum] = dict(name=channelName, enabled=True)
       
-  Prefs.Set('channels', channels)
+  setPref('channels', channels)
       
 
 ####################################################################################################
@@ -95,7 +92,7 @@ def MainMenu():
   dir = MediaContainer()
   dir.nocache = 1
   
-  if Prefs.Get('postalCode') != '' and Prefs.Get('provider') != '' and Prefs.Get('timeFormat') != '':
+  if getPref('postalCode') != '' and getPref('provider') != '' and getPref('timeFormat') != '':
     nextTime = getCurrentTimeSlot()
     Plugin.AddPathRequestHandler(PLUGIN_PREFIX, TVMenu, '')
     
@@ -121,7 +118,7 @@ def timeToDisplay(t):
   hour = (t // 3600) % 24
   minute = (t % 3600) // 60
   #Log(str(hour) + ':' + str(minute))
-  if Prefs.Get('timeFormat') == '12':
+  if getPref('timeFormat') == '12':
     if hour >= 12:
       meridian = 'PM'
     else:
@@ -173,7 +170,7 @@ def showMenu(pathNouns, path):
 def grabShows(shows):
   dir = MediaContainer()
   dir.viewGroup = 'Details'
-  channels = Prefs.Get('channels')
+  channels = getPref('channels')
   for show in shows:
     name = show.xpath('descendant::span[@class="zc-program-episode"]')[0]
     try:
@@ -207,7 +204,7 @@ def movieMenu(url):
   page = GetXML(url, True)
   name = page.xpath('//h1[@id="zc-program-title"]')[0].text
   description = page.xpath('//p[@id="zc-program-description"]')[0].text + '\n\n'
-  channels = Prefs.Get('channels')
+  channels = getPref('channels')
   for aTime in page.xpath('//div[@id="zc-sc-ep-list"]')[0].xpath('child::ol[starts-with(@class,"zc-sc-ep-list-r")]'):
     channel = aTime.xpath('descendant::li[@class="zc-sc-ep-list-l zc-sc-ep-list-chn"]')[0].text
     if channels[int(channel)]['enabled']:
@@ -226,9 +223,9 @@ def settingsMenu(sender):
   dir.title2 = L('Settings')
   dir.nocache = 1
   dir.Append(Function(SearchDirectoryItem(setPostalCode, title='ZIP or Postal Code', prompt='Enter your ZIP or Postal Code')))
-  if Prefs.Get('postalCode') != '':
+  if getPref('postalCode') != '':
     dir.Append(Function(PopupDirectoryItem(providerMenu, title='Provider')))
-  if Prefs.Get('provider') != '':  
+  if getPref('provider') != '':  
     dir.Append(Function(PopupDirectoryItem(timeFormatMenu, title='Time Format')))
     dir.Append(Function(PopupDirectoryItem(inProgressMenu, title='Shows in progress')))
     #if len(hideChannelsMenu(0)) != 0:
@@ -237,8 +234,8 @@ def settingsMenu(sender):
     dir.Append(Function(DirectoryItem(showChannelsMenu, title='Show Channels')))
     dir.Append(Function(DirectoryItem(AddFavouritesMenu, title='Add Favourites')))
     
-    favourites = Prefs.Get('favourites')
-    if favourites == None: Prefs.Add('favourites', list, list(), 'favourites')
+    favourites = getPref('favourites')
+    if favourites == None: addPref('favourites', list, list(), 'favourites')
     if len(favourites) != 0:
       dir.Append(Function(DirectoryItem(RemoveFavouritesMenu, title='Remove Favourites')))
   return dir
@@ -247,14 +244,14 @@ def settingsMenu(sender):
   
 def setPostalCode(sender, query):
   query = string.join(query.split(' '),'') # No spaces please
-  Prefs.Set('postalCode', query)
+  setPref('postalCode', query)
   return
   
 ####################################################################################################
 
 def providerMenu(sender):
   dir = MediaContainer()
-  url = 'http://tvlistings.zap2it.com/tvlistings/ZBChooseProvider.do?zipcode=' + Prefs.Get('postalCode') + '&method=getProviders'
+  url = 'http://tvlistings.zap2it.com/tvlistings/ZBChooseProvider.do?zipcode=' + getPref('postalCode') + '&method=getProviders'
   providers = XML.ElementFromString(HTTP.Request(url=url, cacheTime=CACHE_TIME), True).xpath('//a[starts-with(@href, "ZCGrid.do?method=decideFwdForLineup")]')
   for provider in providers:
     dir.Append(Function(DirectoryItem(setProvider, title=provider.text)))
@@ -262,14 +259,13 @@ def providerMenu(sender):
   
 def setProvider(sender):
   Log(sender.itemTitle)
-  url = 'http://tvlistings.zap2it.com/tvlistings/ZBChooseProvider.do?zipcode=' + Prefs.Get('postalCode') + '&method=getProviders'
+  url = 'http://tvlistings.zap2it.com/tvlistings/ZBChooseProvider.do?zipcode=' + getPref('postalCode') + '&method=getProviders'
 
   setProviderURL = XML.ElementFromString(HTTP.Request(url=url, cacheTime=CACHE_TIME), True).xpath('//a[text() = "' + sender.itemTitle + '"]')[0].get('href')
-  Log(re.search(r'lineupId=(.*)', setProviderURL).group(1))
-  Log(type(re.search(r'lineupId=(.*)', setProviderURL).group(1)))
-  #Prefs.Set('provider', re.search(r'lineupId=(.*)', setProviderURL).group(1))
+  #Log(re.search(r'lineupId=(.*)', setProviderURL).group(1))
+  #Log(type(re.search(r'lineupId=(.*)', setProviderURL).group(1)))
+  setPref('provider', re.search(r'lineupId=(.*)', setProviderURL).group(1))
   
-  Prefs.Set('provider', 'randomString')
   UpdateCache()
   return
 
@@ -283,7 +279,7 @@ def timeFormatMenu(sender):
 
 def setTimeFormat(sender):
   timeFormat = re.match(r'(\d\d).*', sender.itemTitle).group(1)
-  Prefs.Set('timeFormat', timeFormat)
+  setPref('timeFormat', timeFormat)
   return
   
 ####################################################################################################
@@ -296,9 +292,9 @@ def inProgressMenu(sender):
 
 def setInProgress(sender):
   if sender.itemTitle == 'Show':
-    Prefs.Set('inProgress', True)
+    setPref('inProgress', True)
   else:
-    Prefs.Set('inProgress', False)
+    setPref('inProgress', False)
   return
   
 ####################################################################################################
@@ -308,7 +304,7 @@ def hideChannelsMenu(sender):
   dir.title2 = 'Hide Channels'
   dir.nocache = 1
   if sender == 0: dir.replaceParent = 1
-  channels = Prefs.Get('channels')
+  channels = getPref('channels')
   channelList = channels.keys()
   channelList.sort()
   for channel in channelList:
@@ -318,9 +314,9 @@ def hideChannelsMenu(sender):
   
 def hideChannel(sender):
   (num, name) = sender.itemTitle.split(' ')
-  channels = Prefs.Get('channels')
+  channels = getPref('channels')
   channels[int(num)]['enabled'] = False
-  Prefs.Set('channels', channels)
+  setPref('channels', channels)
   return hideChannelsMenu(0)
 
 ####################################################################################################
@@ -329,7 +325,7 @@ def showChannelsMenu(sender):
   dir = MediaContainer()
   dir.title2 = 'Show Channels'
   dir.nocache = 1
-  channels = Prefs.Get('channels')
+  channels = getPref('channels')
   channelList = channels.keys()
   channelList.sort()
   for channel in channelList:
@@ -339,9 +335,9 @@ def showChannelsMenu(sender):
   
 def showChannel(sender):
   (num, name) = sender.itemTitle.split(' ')
-  channels = Prefs.Get('channels')
+  channels = getPref('channels')
   channels[int(num)]['enabled'] = True
-  Prefs.Set('channels', channels)
+  setPref('channels', channels)
   return
 
 ####################################################################################################
@@ -350,8 +346,7 @@ def AddFavouritesMenu(sender):
   dir = MediaContainer()
   dir.title2 = 'Add Favourites'
   dir.nocache = 1
-  favourites = Prefs.Get('favourites')
-  
+  favourites = getPref('favourites')  
   try:
     if len(AddFavouritesMenu.allShows) != 0:
       for show in AddFavouritesMenu.allShows:
@@ -374,9 +369,9 @@ def AddFavouritesMenu(sender):
     return dir
   
 def addFavourite(sender):
-  favourites = Prefs.Get('favourites')
+  favourites = getPref('favourites')
   favourites.append(sender.itemTitle)
-  Prefs.Set('favourites', favourites)
+  setPref('favourites', favourites)
   return
 
 ####################################################################################################
@@ -385,22 +380,22 @@ def RemoveFavouritesMenu(sender):
   dir = MediaContainer()
   dir.title2 = 'Remove Favourites'
   dir.nocache = 1
-  favourites = Prefs.Get('favourites')
+  favourites = getPref('favourites')
   favourites.sort()
   for favourite in favourites:
     dir.Append(Function(DirectoryItem(removeFavourite, title=favourite)))
   return dir
 
 def removeFavourite(sender):
-  favourites = Prefs.Get('favourites')
+  favourites = getPref('favourites')
   favourites.remove(sender.itemTitle)
-  Prefs.Set('favourites', favourites)
+  setPref('favourites', favourites)
   return
   
 ####################################################################################################
 
 def grabListings(t, shows):
-  url = PROVIDER_INDEX + '&zipcode=' + Prefs.Get('postalCode') + '&lineupId=' + Prefs.Get('provider') + '&fromTimeInMillis=' + str(t) + '000'
+  url = PROVIDER_INDEX + '&zipcode=' + getPref('postalCode') + '&lineupId=' + getPref('provider') + '&fromTimeInMillis=' + str(t) + '000'
   for td in GetXML(url, True).xpath('//td[starts-with(@class,"zc-pg")]'):
     try: showName = td.xpath('child::a')[0].text.encode('ascii','ignore')
     except: showName = ''
@@ -408,30 +403,36 @@ def grabListings(t, shows):
     except: description = ''
     
     if (showName != '' or description != ''):
-      channel = td.xpath('parent::*')[0].xpath('child::td[@class="zc-st"]')[0]
-      channelNum = channel.xpath('descendant::span[@class="zc-st-n"]')[0].text
-      channelName = channel.xpath('descendant::span[@class="zc-st-c"]')[0].text
-      
       try:
-        releaseYear = td.xpath('child::span[@class="zc-pg-y"]')[0].text
-        showName = showName + ' ' + releaseYear
-      except: pass
-      try:
-        episodeName = td.xpath('child::span[@class="zc-pg-e"]')[0].text
-        description = episodeName + '\n\n' + description
-      except: pass
-      
-      startTime = int(re.search(r'(?:([^,]+),)*', td.get('onclick')).group(1)) // 1000
-      startSlot = startTime - (startTime % 1800)
-      duration = int(re.search(r'(\d+)', td.get('style')).group(0)) * 15 # seconds
-      endTime = startTime + duration
-      endSlot = endTime - (endTime % 1800)
-      
-      if not startSlot in shows: shows[startSlot] = list()
-      shows[startSlot].append(dict(title=showName, channelNum=channelNum, channelName=channelName, start=startTime, end=endTime, summary=description, inProgress=False))
-      for slot in range(startSlot, endSlot, 1800):
-        if not slot in shows: shows[slot] = list()
-        shows[slot].append(dict(title=showName, channelNum=channelNum, channelName=channelName, start=startTime, end=endTime, summary=description, inProgress=True))
+        channel = td.xpath('parent::*')[0].xpath('child::td[@class="zc-st"]')[0]
+        channelNum = channel.xpath('descendant::span[@class="zc-st-n"]')[0].text
+        channelName = channel.xpath('descendant::span[@class="zc-st-c"]')[0].text
+        isValidChannel = True
+      except:
+        Log('Get channel failed:' + showName + ' ' + description)
+        isValidChannel = False
+        
+      if isValidChannel:
+        try:
+          releaseYear = td.xpath('child::span[@class="zc-pg-y"]')[0].text
+          showName = showName + ' ' + releaseYear
+        except: pass
+        try:
+          episodeName = td.xpath('child::span[@class="zc-pg-e"]')[0].text
+          description = episodeName + '\n\n' + description
+        except: pass
+        
+        startTime = int(re.search(r'(?:([^,]+),)*', td.get('onclick')).group(1)) // 1000
+        startSlot = startTime - (startTime % 1800)
+        duration = int(re.search(r'(\d+)', td.get('style')).group(0)) * 15 # seconds
+        endTime = startTime + duration
+        endSlot = endTime - (endTime % 1800)
+        
+        if not startSlot in shows: shows[startSlot] = list()
+        shows[startSlot].append(dict(title=showName, channelNum=channelNum, channelName=channelName, start=startTime, end=endTime, summary=description, inProgress=False))
+        for slot in range(startSlot, endSlot, 1800):
+          if not slot in shows: shows[slot] = list()
+          shows[slot].append(dict(title=showName, channelNum=channelNum, channelName=channelName, start=startTime, end=endTime, summary=description, inProgress=True))
 
 ####################################################################################################
 
@@ -446,9 +447,9 @@ def TVMenu(pathNouns, path):
     grabListings(menuTime, listings)
   listings = listings[menuTime]
   
-  displayInProgress = Prefs.Get('inProgress')
-  channels = Prefs.Get('channels')
-  favourites = Prefs.Get('favourites')
+  displayInProgress = getPref('inProgress')
+  channels = getPref('channels')
+  favourites = getPref('favourites')
   hits = list()
   misses = list()
   for listing in listings:
@@ -512,3 +513,14 @@ def GetXML(theUrl, use_html_parser=False):
   return XML.ElementFromString(HTTP.Request(url=theUrl, cacheTime=CACHE_TIME), use_html_parser)
 
 ####################################################################################################
+
+def setPref(id, value):
+  Prefs.Set(id, pickle.dumps(value))
+
+def getPref(id):
+  return pickle.loads(Prefs.Get(id))
+  
+def addPref(id, kind, default, name):
+  Prefs.Add(id, kind, pickle.dumps(default), name)
+####################################################################################################
+
