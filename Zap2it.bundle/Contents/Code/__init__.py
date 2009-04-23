@@ -130,6 +130,28 @@ def getCurrentTimeSlot():
   now = calendar.timegm(time.gmtime())
   now = now - (now % 1800)
   return now
+  
+def meridianRangeTo24hour(s):
+  (start, stop) = s.split('-')
+  (stopTime, meridian) = re.match(r'(\d+:\d+)(\w\w)', stop).groups()
+  if meridian == 'pm':
+    baseHour = 12
+  else:
+    baseHour = 0
+    
+  (startHour, startMinute) = start.split(':')
+  (stopHour, stopMinute) = stopTime.split(':')
+  
+  startHour = int(startHour) + baseHour
+  stopHour = int(stopHour) + baseHour
+  # 11:30-1:30AM -> 11:30-01:30 -> 23:30-01:30
+  # 11:30-1:30PM -> 23:30-13:30 -> 11:30-13:30
+  if startHour > stopHour: startHour = (startHour - 12) % 24
+  
+  start24 = str(startHour).zfill(2) + ':' + startMinute
+  stop24 = str(stopHour).zfill(2) + ':' + stopMinute
+  
+  return start24 + '-' + stop24
 
 ####################################################################################################
 
@@ -181,7 +203,11 @@ def grabShows(shows):
       #Log(channel)
       if channels[int(channel)]['enabled']:
         description = description + '\n' + aTime.xpath('child::td[@class="zc-sche-date"]')[0].text 
-        description = description + ' ' + aTime.xpath('child::td[@class="zc-sche-time"]')[0].text
+        
+        timeRange = aTime.xpath('child::td[@class="zc-sche-time"]')[0].text
+        if getPref('timeFormat') == '24':
+          timeRange = meridianRangeTo24hour(timeRange)
+        description = description + ' ' + timeRange
         description = description + ' ' + channel
         channelName = aTime.xpath('child::td[@class="zc-callsign"]')[0]
         try:
@@ -203,7 +229,12 @@ def movieMenu(url):
     if channels[int(channel)]['enabled']:
       description = description + ' ' + aTime.xpath('descendant::li[@class="zc-sc-ep-list-l zc-sc-ep-list-wd"]')[0].text
       description = description + ' ' + aTime.xpath('descendant::li[@class="zc-sc-ep-list-l zc-sc-ep-list-md"]')[0].text
-      description = description + ' ' + aTime.xpath('descendant::li[@class="zc-sc-ep-list-l zc-sc-ep-list-stet"]')[0].text
+      
+      timeRange = aTime.xpath('descendant::li[@class="zc-sc-ep-list-l zc-sc-ep-list-stet"]')[0].text
+      if getPref('timeFormat') == '24':
+        timeRange = meridianRangeTo24hour(timeRange)
+      description = description + ' ' + timeRange
+      
       description = description + ' ' + channel
       description = description + ' ' + aTime.xpath('descendant::li[@class="zc-sc-ep-list-l zc-sc-ep-list-call"]')[0].text + '\n'
   dir.Append(Function(DirectoryItem(noMenu, title=name, summary=description)))
