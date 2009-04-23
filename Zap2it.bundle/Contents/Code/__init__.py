@@ -93,7 +93,7 @@ def MainMenu():
       dir.Append(DirectoryItem(nextTime, timeToDisplay(nextTime), thumb=R('blank-black.gif')))
       nextTime = nextTime + 1800
     dir.Append(Function(DirectoryItem(daysMenu, title=L('Another day'), thumb=R('blank-black.gif'))))
-    dir.Append(Function(SearchDirectoryItem(searchMenu, title='Search', prompt='Enter show name')))
+    dir.Append(Function(SearchDirectoryItem(searchMenu, title=l('Search'), prompt=L('Enter show name'))))
     
   dir.Append(Function(DirectoryItem(settingsMenu, title=L('Settings'), thumb=R('icon-settings.png'))))
   return dir
@@ -246,22 +246,22 @@ def settingsMenu(sender):
   dir = MediaContainer()
   dir.title2 = L('Settings')
   dir.nocache = 1
-  dir.Append(Function(SearchDirectoryItem(setPostalCode, title='ZIP or Postal Code', prompt='Enter your ZIP or Postal Code')))
+  dir.Append(Function(SearchDirectoryItem(setPostalCode, title=L('PostalCodeTitle'), prompt=L('PostalCodePrompt'))))
   if getPref('postalCode') != '':
-    dir.Append(Function(PopupDirectoryItem(providerMenu, title='Provider')))
+    dir.Append(Function(PopupDirectoryItem(providerMenu, title=L('Provider'))))
   if getPref('provider') != '':  
-    dir.Append(Function(PopupDirectoryItem(timeFormatMenu, title='Time Format')))
-    dir.Append(Function(PopupDirectoryItem(inProgressMenu, title='Shows in progress')))
+    dir.Append(Function(PopupDirectoryItem(timeFormatMenu, title=L('Time Format'))))
+    dir.Append(Function(PopupDirectoryItem(inProgressMenu, title=L('Shows in progress'))))
     #if len(hideChannelsMenu(0)) != 0:
-    dir.Append(Function(DirectoryItem(hideChannelsMenu, title='Hide Channels')))
+    dir.Append(Function(DirectoryItem(hideChannelsMenu, title=L('Hide Channels'))))
     #if len(showChannelsMenu(0)) != 0:
-    dir.Append(Function(DirectoryItem(showChannelsMenu, title='Show Channels')))
-    dir.Append(Function(DirectoryItem(AddFavouritesMenu, title='Add Favourites')))
-    dir.Append(Function(PopupDirectoryItem(collapseShowsMenu, title='Duplicates')))
+    dir.Append(Function(DirectoryItem(showChannelsMenu, title=L('Show Channels'))))
+    dir.Append(Function(DirectoryItem(AddFavouritesMenu, title=('Add Favourites'))))
+    dir.Append(Function(PopupDirectoryItem(collapseShowsMenu, title=L('Duplicates'))))
     
     favourites = getPref('favourites')
     if len(favourites) != 0:
-      dir.Append(Function(DirectoryItem(RemoveFavouritesMenu, title='Remove Favourites')))
+      dir.Append(Function(DirectoryItem(RemoveFavouritesMenu, title=L('Remove Favourites'))))
   return dir
 
 ####################################################################################################
@@ -297,8 +297,8 @@ def setProvider(sender):
 
 def timeFormatMenu(sender):
   dir = MediaContainer()
-  dir.Append(Function(DirectoryItem(setTimeFormat, title='12 hour')))
-  dir.Append(Function(DirectoryItem(setTimeFormat, title='24 hour')))
+  dir.Append(Function(DirectoryItem(setTimeFormat, title='12' + L('hour'))))
+  dir.Append(Function(DirectoryItem(setTimeFormat, title='24' + L('hour'))))
   return dir
 
 def setTimeFormat(sender):
@@ -310,12 +310,12 @@ def setTimeFormat(sender):
 
 def inProgressMenu(sender):
   dir = MediaContainer()
-  dir.Append(Function(DirectoryItem(setInProgress, title='Show')))
-  dir.Append(Function(DirectoryItem(setInProgress, title='Hide')))
+  dir.Append(Function(DirectoryItem(setInProgress, title=L('Show'))))
+  dir.Append(Function(DirectoryItem(setInProgress, title=L('Hide'))))
   return dir
 
 def setInProgress(sender):
-  if sender.itemTitle == 'Show':
+  if sender.itemTitle == L('Show'):
     setPref('inProgress', True)
   else:
     setPref('inProgress', False)
@@ -325,12 +325,12 @@ def setInProgress(sender):
 
 def collapseShowsMenu(sender):
   dir = MediaContainer()
-  dir.Append(Function(DirectoryItem(setCollapse, title='Show')))
-  dir.Append(Function(DirectoryItem(setCollapse, title='Hide')))
+  dir.Append(Function(DirectoryItem(setCollapse, title=L('Show'))))
+  dir.Append(Function(DirectoryItem(setCollapse, title=L('Hide'))))
   return dir
   
 def setCollapse(sender):
-  if sender.itemTitle == 'Show':
+  if sender.itemTitle == L('Show'):
     v = False
   else:
     v = True
@@ -342,7 +342,7 @@ def setCollapse(sender):
 
 def hideChannelsMenu(sender):
   dir = MediaContainer()
-  dir.title2 = 'Hide Channels'
+  dir.title2 = L('Hide Channels')
   dir.nocache = 1
   if sender == 0: dir.replaceParent = 1
   channels = getPref('channels')
@@ -364,7 +364,7 @@ def hideChannel(sender):
 
 def showChannelsMenu(sender):
   dir = MediaContainer()
-  dir.title2 = 'Show Channels'
+  dir.title2 = L('Show Channels')
   dir.nocache = 1
   channels = getPref('channels')
   channelList = channels.keys()
@@ -385,7 +385,7 @@ def showChannel(sender):
 
 def AddFavouritesMenu(sender):
   dir = MediaContainer()
-  dir.title2 = 'Add Favourites'
+  dir.title2 = L('Add Favourites')
   dir.nocache = 1
   favourites = getPref('favourites')  
   try:
@@ -419,7 +419,7 @@ def addFavourite(sender):
   
 def RemoveFavouritesMenu(sender):
   dir = MediaContainer()
-  dir.title2 = 'Remove Favourites'
+  dir.title2 = L('Remove Favourites')
   dir.nocache = 1
   favourites = getPref('favourites')
   favourites.sort()
@@ -522,7 +522,7 @@ def TVMenu(pathNouns, path):
 
 def daysMenu(sender):
   dir = MediaContainer()
-  dir.title2 = 'Days'
+  dir.title2 = L('Days')
   Plugin.AddPathRequestHandler(DAY_PREFIX, dayMenu, '', '', '')
 
   (year, month, day) = datetime.datetime.today().timetuple()[0:3]
