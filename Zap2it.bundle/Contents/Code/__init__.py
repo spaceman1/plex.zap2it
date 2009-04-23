@@ -57,9 +57,15 @@ def UpdateCache():
     Dict.Set('shows', dict())
     shows = Dict.Get('shows')
     
+  # remove old slots
+  for slot in shows.iterkeys():
+    if slot < now: del shows[slot]
+  
+  # populate new slots
   for slot in range(now, now + DAY, 3 * 3600):
     grabListings(slot, shows)
 
+  # populate channel dict
   channels = getPref('channels')
   if type(channels) != type(dict):
     channels = dict()
@@ -78,8 +84,6 @@ def UpdateCache():
 
 # TODO: Add day to non-today menus
 # TODO: Link to saved folder
-# TODO: Clean old time slots from dictionary
-# TODO: Translate times to 24hr in search results
 
 def MainMenu():
   dir = MediaContainer()
@@ -93,7 +97,7 @@ def MainMenu():
       dir.Append(DirectoryItem(nextTime, timeToDisplay(nextTime), thumb=R('blank-black.gif')))
       nextTime = nextTime + 1800
     dir.Append(Function(DirectoryItem(daysMenu, title=L('Another day'), thumb=R('blank-black.gif'))))
-    dir.Append(Function(SearchDirectoryItem(searchMenu, title=l('Search'), prompt=L('Enter show name'))))
+    dir.Append(Function(SearchDirectoryItem(searchMenu, title=L('Search'), prompt=L('Enter show name'))))
     
   dir.Append(Function(DirectoryItem(settingsMenu, title=L('Settings'), thumb=R('icon-settings.png'))))
   return dir
@@ -101,6 +105,7 @@ def MainMenu():
 ####################################################################################################  
   
 def timeToDisplay(t):
+  ''' Turns a POSIX time into a human readable local time'''
   # Adjust to local time
   if time.daylight != 0:
     t = t - time.altzone 
@@ -127,6 +132,7 @@ def timeToDisplay(t):
   return str(hour) + ':' + str(minute).zfill(2) + ' ' + meridian
 
 def getCurrentTimeSlot():
+  '''@return current time rounded down to nearest half hour'''
   now = calendar.timegm(time.gmtime())
   now = now - (now % 1800)
   return now
@@ -436,6 +442,9 @@ def removeFavourite(sender):
 ####################################################################################################
 
 def grabListings(t, shows):
+  '''Reads group of guide listings
+    @param t: start time
+    @param shows: currently known listings'''
   url = PROVIDER_INDEX + '&zipcode=' + getPref('postalCode') + '&lineupId=' + getPref('provider') + '&fromTimeInMillis=' + str(t) + '000'
   for td in GetXML(url, True).xpath('//td[starts-with(@class,"zc-pg")]'):
     try: showName = td.xpath('child::a')[0].text.encode('ascii','ignore')
